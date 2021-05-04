@@ -36,7 +36,7 @@ data class Extraction(
 
 
         fun parse(source: Path): Extraction {
-            val content = Files.readString(source, Charsets.UTF_8)
+            val content = String(Files.readAllBytes(source), Charsets.UTF_8)
             val fileName = source.fileName.toString()
             val configAsTree = when {
                 fileName.endsWith(".toml") -> Toml.asTree(content)
