@@ -6,18 +6,22 @@ import java.net.URLClassLoader
 import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.ResultSet
+import kotlin.io.path.createTempDirectory
 
 
 class Extractor {
 
     fun extract(config: Extraction) {
-        val classLoader = URLClassLoader.newInstance(arrayOf(URL("jar:file:" + config.driver)))
+        val driverUrl = "file://" + config.driver
+        println("-> $driverUrl")
+        val driverClassPath = URL(driverUrl)
+        val classLoader = URLClassLoader.newInstance(arrayOf(driverClassPath))
 
         val driver = Class.forName(config.className, true, classLoader)
             .getDeclaredConstructor()
             .newInstance() as Driver
 
-        DriverManager.registerDriver(driver)
+        DriverManager.registerDriver(Wrapper(driver))
 
         val connection = DriverManager.getConnection(config.jdbcUrl, config.jdbcUrl, config.jdbcUrl)
         connection.use {
@@ -27,4 +31,6 @@ class Extractor {
             }
         }
     }
+
+    class Wrapper(wrapped: Driver) : Driver by wrapped
 }

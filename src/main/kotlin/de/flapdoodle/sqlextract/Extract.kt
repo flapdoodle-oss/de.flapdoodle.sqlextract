@@ -25,7 +25,7 @@ object Extract {
         }
 
         override fun run() {
-            val config = Extraction.parse(configPath)
+            val config = Extraction.parse(configPath.toAbsolutePath())
             Extractor().extract(config)
         }
     }
