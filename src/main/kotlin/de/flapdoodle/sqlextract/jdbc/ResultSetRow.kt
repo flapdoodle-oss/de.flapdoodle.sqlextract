@@ -12,4 +12,12 @@ class ResultSetRow(private val wrapped: ResultSet) {
         }
         return null
     }
+
+    fun <T: Any> expectColumn(columnName: String, type: KClass<T>): T {
+        val value = column(columnName, type)
+
+        require(value!=null) {"column $columnName is null"}
+
+        return value
+    }
 }

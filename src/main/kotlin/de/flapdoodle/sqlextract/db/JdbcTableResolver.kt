@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.jdbc.map
+import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.JDBCType
@@ -21,36 +22,39 @@ class JdbcTableResolver(
 //    }
 
     override fun byName(name: String): Table? {
-        metaData.map { it.getTables(null,null,name, arrayOf("TABLE")) }
-                .map {
-                    val tableName = column("TABLE_NAME", String::class)
+        val (tableName, remarks) = metaData.map { getTables(null,null,name, arrayOf("TABLE")) }
+                .get {
+                    val tableName = expectColumn("TABLE_NAME", String::class)
                     val remarks = column("REMARKS", String::class)
                     println("table -> $name -> $tableName ($remarks)")
+                    tableName to remarks
                 }
 
-//        val resultSet = metaData.getTables(null,null,name, arrayOf("TABLE"))
+        metaData.map { getColumns(null, null, tableName, null) }
+                .map {
+                    val columnName = expectColumn("COLUMN_NAME", String::class)
+                    val datatype = expectColumn("DATA_TYPE", BigDecimal::class).intValueExact()
+//                    val columnsize = columns.getString("COLUMN_SIZE")
+//                    val decimaldigits = columns.getString("DECIMAL_DIGITS")
+//                    val isNullable = columns.getString("IS_NULLABLE")
+//                    val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
+
+                    println("$columnName -> ${JDBCType.valueOf(datatype)}")
+                }
+
+//        val columns = metaData.getColumns(null, null, tableName, null)
+//        columns.use {
+//            while (columns.next()) {
+//                val columnName = columns.getString("COLUMN_NAME")
+//                val datatype = columns.getInt("DATA_TYPE")
+//                val columnsize = columns.getString("COLUMN_SIZE")
+//                val decimaldigits = columns.getString("DECIMAL_DIGITS")
+//                val isNullable = columns.getString("IS_NULLABLE")
+//                val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
 //
-//        resultSet.use {
-//            while (resultSet.next()) {
-//                val tableName = resultSet.getString("TABLE_NAME")
-//                val remarks = resultSet.getString("REMARKS")
-//                println("found table: $name -> $tableName ($remarks)")
+//                println("$columnName -> ${JDBCType.valueOf(datatype)}")
 //            }
 //        }
-
-        val columns = metaData.getColumns(null, null, name, null)
-        columns.use {
-            while (columns.next()) {
-                val columnName = columns.getString("COLUMN_NAME")
-                val datatype = columns.getInt("DATA_TYPE")
-                val columnsize = columns.getString("COLUMN_SIZE")
-                val decimaldigits = columns.getString("DECIMAL_DIGITS")
-                val isNullable = columns.getString("IS_NULLABLE")
-                val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
-
-                println("$columnName -> ${JDBCType.valueOf(datatype)}")
-            }
-        }
 
         val primaryKeys: ResultSet = metaData.getPrimaryKeys(null, null, name)
         primaryKeys.use {
