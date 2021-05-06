@@ -12,8 +12,9 @@ import kotlin.io.path.createTempDirectory
 class Extractor {
 
     fun extract(config: Extraction) {
+        println("config: $config")
+
         val driverUrl = "file://" + config.driver
-        println("-> $driverUrl")
         val driverClassPath = URL(driverUrl)
         val classLoader = URLClassLoader.newInstance(arrayOf(driverClassPath))
 
@@ -23,7 +24,7 @@ class Extractor {
 
         DriverManager.registerDriver(Wrapper(driver))
 
-        val connection = DriverManager.getConnection(config.jdbcUrl, config.jdbcUrl, config.jdbcUrl)
+        val connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
         connection.use {
             val rs: ResultSet = it.metaData.getTables(null, null, "%", null)
             while (rs.next()) {
