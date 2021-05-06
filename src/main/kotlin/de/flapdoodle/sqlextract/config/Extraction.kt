@@ -7,11 +7,12 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 data class Extraction(
-    val driver: Path,
-    val className: String,
-    val jdbcUrl: String,
-    val user: String?,
-    val password: String?
+        val driver: Path,
+        val className: String,
+        val jdbcUrl: String,
+        val user: String?,
+        val password: String?,
+        val dataSets: List<DataSet>
 ) {
     companion object {
         fun parse(basePath: Path, source: Attributes.Node): Extraction {
@@ -21,16 +22,25 @@ data class Extraction(
             val user = source.values("user", String::class).singleOrNull()
             val password = source.values("password", String::class).singleOrNull()
 
-            require(driverPath!=null) {"driver not set"}
-            require(className!=null) {"className not set"}
-            require(jdbcUrl!=null) {"className not set"}
+            require(driverPath != null) { "driver not set" }
+            require(className != null) { "className not set" }
+            require(jdbcUrl != null) { "className not set" }
+
+            val dataSetConfigs = source.find("dataset", Attributes.Node::class)
+
+            require(dataSetConfigs != null) { "at least one dataset must be defined" }
+
+            val dataSets = dataSetConfigs.nodeKeys().map {
+                DataSet.parse(it, dataSetConfigs.get(it, Attributes.Node::class))
+            }
 
             return Extraction(
-                driver = basePath.resolve(driverPath),
-                className = className,
-                jdbcUrl = jdbcUrl,
-                user = user,
-                password = password
+                    driver = basePath.resolve(driverPath),
+                    className = className,
+                    jdbcUrl = jdbcUrl,
+                    user = user,
+                    password = password,
+                    dataSets = dataSets
             )
         }
 

@@ -3,10 +3,9 @@ package de.flapdoodle.sqlextract.db
 import de.flapdoodle.sqlextract.config.Extraction
 import java.net.URL
 import java.net.URLClassLoader
+import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
-import java.sql.ResultSet
-import kotlin.io.path.createTempDirectory
 
 
 class Extractor {
@@ -24,12 +23,27 @@ class Extractor {
 
         DriverManager.registerDriver(Wrapper(driver))
 
-        val connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
-        connection.use {
-            val rs: ResultSet = it.metaData.getTables(null, null, "%", null)
-            while (rs.next()) {
-                println("-> "+rs.getString(3))
+        val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
+        val tableResolver = JdbcTableResolver(connection)
+
+        connection.use { connection ->
+            config.dataSets.forEach { dataSet ->
+                println("-> ${dataSet.name}")
+
+                val table = tableResolver.byName(dataSet.table)
+
+                val sqlQuery = "select * from ${dataSet.table} where ${dataSet.where}"
+                println("query: $sqlQuery")
+                val statement = connection.prepareStatement(sqlQuery)
+                val resultSet = statement.executeQuery()
+                while (resultSet.next()) {
+                    println("-> "+resultSet)
+                }
             }
+//            val rs: ResultSet = it.metaData.getTables(null, null, "%", null)
+//            while (rs.next()) {
+//                println("-> "+rs.getString(3))
+//            }
         }
     }
 
