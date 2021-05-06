@@ -1,6 +1,6 @@
 package de.flapdoodle.sqlextract.db
 
-import de.flapdoodle.sqlextract.jdbc.map
+import de.flapdoodle.sqlextract.jdbc.query
 import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.DatabaseMetaData
@@ -19,16 +19,16 @@ class JdbcTableResolver(
 //        String table_catalog = schemas.getString("TABLE_CATALOG");
 //    }
 
-    override fun byName(name: String): Table? {
-        val (tableName, remarks) = metaData.map { getTables(null,null,name, arrayOf("TABLE")) }
+    override fun byName(name: String): Table {
+        val (tableName, remarks) = metaData.query { getTables(null,null,name, arrayOf("TABLE")) }
                 .get {
                     val tableName = expectColumn("TABLE_NAME", String::class)
                     val remarks = column("REMARKS", String::class)
-                    println("table -> $name -> $tableName ($remarks)")
+//                    println("table -> $name -> $tableName ($remarks)")
                     tableName to remarks
                 }
 
-        val columns = metaData.map { getColumns(null, null, tableName, null) }
+        val columns = metaData.query { getColumns(null, null, tableName, null) }
                 .map {
                     val columnName = expectColumn("COLUMN_NAME", String::class)
                     val datatype = expectColumn("DATA_TYPE", BigDecimal::class).intValueExact()
@@ -37,28 +37,28 @@ class JdbcTableResolver(
 //                    val isNullable = columns.getString("IS_NULLABLE")
 //                    val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
 
-                    println("$columnName -> ${JDBCType.valueOf(datatype)}")
+//                    println("$columnName -> ${JDBCType.valueOf(datatype)}")
 
                     Column(columnName, JDBCType.valueOf(datatype))
                 }
 
-        val primaryKeys = metaData.map { getPrimaryKeys(null, null, tableName) }
+        val primaryKeys = metaData.query { getPrimaryKeys(null, null, tableName) }
             .map {
                 val primaryKeyColumnName = expectColumn("COLUMN_NAME", String::class)
                 val primaryKeyName = expectColumn("PK_NAME", String::class)
-                println("PK -> $primaryKeyColumnName - $primaryKeyName")
+//                println("PK -> $primaryKeyColumnName - $primaryKeyName")
 
                 PrimaryKey(primaryKeyColumnName, primaryKeyName)
             }
 
 
-        val foreignKeys = metaData.map { getImportedKeys(null, null, tableName)  }
+        val foreignKeys = metaData.query { getImportedKeys(null, null, tableName)  }
             .map {
                 val pkTableName = expectColumn("PKTABLE_NAME", String::class)
                 val fkTableName = expectColumn("FKTABLE_NAME", String::class)
                 val pkColumnName = expectColumn("PKCOLUMN_NAME", String::class)
-                var fkColumnName = expectColumn("FKCOLUMN_NAME", String::class)
-                println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
+                val fkColumnName = expectColumn("FKCOLUMN_NAME", String::class)
+//                println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
 
                 ForeignKey(pkTableName, pkColumnName, fkTableName, fkColumnName)
             }

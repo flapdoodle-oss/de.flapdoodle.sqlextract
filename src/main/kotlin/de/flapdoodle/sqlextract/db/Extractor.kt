@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.Extraction
+import de.flapdoodle.sqlextract.jdbc.query
 import java.net.URL
 import java.net.URLClassLoader
 import java.sql.Connection
@@ -25,20 +26,33 @@ class Extractor {
 
         val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
         val tableResolver = JdbcTableResolver(connection)
+        val tableGraphWalker = TableGraphWalker(tableResolver)
 
         connection.use { connection ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
-                val table = tableResolver.byName(dataSet.table)
+//                val table = tableResolver.byName(dataSet.table)
+                val graph = tableGraphWalker.startFrom(dataSet.table)
+
+                println("--> $graph")
 
                 val sqlQuery = "select * from ${dataSet.table} where ${dataSet.where}"
+                val table = graph.table(dataSet.table)
+
                 println("query: $sqlQuery")
-                val statement = connection.prepareStatement(sqlQuery)
-                val resultSet = statement.executeQuery()
-                while (resultSet.next()) {
-                    println("-> "+resultSet)
-                }
+                connection.query { prepareStatement(sqlQuery).executeQuery() }
+                        .map {
+                            table.columns.forEach { column ->
+                                val value = column(column.name, Object::class)
+                                println("${column.name}=$value")
+                            }
+                        }
+//                val statement = connection.prepareStatement(sqlQuery)
+//                val resultSet = statement.executeQuery()
+//                while (resultSet.next()) {
+//                    println("-> "+resultSet)
+//                }
             }
 //            val rs: ResultSet = it.metaData.getTables(null, null, "%", null)
 //            while (rs.next()) {
