@@ -5,8 +5,6 @@ import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.JDBCType
-import java.sql.ResultSet
-import javax.sql.rowset.JdbcRowSet
 
 
 class JdbcTableResolver(
@@ -30,7 +28,7 @@ class JdbcTableResolver(
                     tableName to remarks
                 }
 
-        metaData.map { getColumns(null, null, tableName, null) }
+        val columns = metaData.map { getColumns(null, null, tableName, null) }
                 .map {
                     val columnName = expectColumn("COLUMN_NAME", String::class)
                     val datatype = expectColumn("DATA_TYPE", BigDecimal::class).intValueExact()
@@ -40,42 +38,37 @@ class JdbcTableResolver(
 //                    val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
 
                     println("$columnName -> ${JDBCType.valueOf(datatype)}")
+
+                    Column(columnName, JDBCType.valueOf(datatype))
                 }
 
-//        val columns = metaData.getColumns(null, null, tableName, null)
-//        columns.use {
-//            while (columns.next()) {
-//                val columnName = columns.getString("COLUMN_NAME")
-//                val datatype = columns.getInt("DATA_TYPE")
-//                val columnsize = columns.getString("COLUMN_SIZE")
-//                val decimaldigits = columns.getString("DECIMAL_DIGITS")
-//                val isNullable = columns.getString("IS_NULLABLE")
-//                val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
-//
-//                println("$columnName -> ${JDBCType.valueOf(datatype)}")
-//            }
-//        }
-
-        val primaryKeys: ResultSet = metaData.getPrimaryKeys(null, null, name)
-        primaryKeys.use {
-            while (primaryKeys.next()) {
-                val primaryKeyColumnName = primaryKeys.getString("COLUMN_NAME")
-                val primaryKeyName = primaryKeys.getString("PK_NAME")
+        val primaryKeys = metaData.map { getPrimaryKeys(null, null, tableName) }
+            .map {
+                val primaryKeyColumnName = expectColumn("COLUMN_NAME", String::class)
+                val primaryKeyName = expectColumn("PK_NAME", String::class)
                 println("PK -> $primaryKeyColumnName - $primaryKeyName")
-            }
-        }
 
-        val foreignKeys: ResultSet = metaData.getImportedKeys(null, null, name)
-        foreignKeys.use {
-            while (foreignKeys.next()) {
-                val pkTableName = foreignKeys.getString("PKTABLE_NAME")
-                val fkTableName = foreignKeys.getString("FKTABLE_NAME")
-                val pkColumnName = foreignKeys.getString("PKCOLUMN_NAME")
-                var fkColumnName: String? = foreignKeys.getString("FKCOLUMN_NAME")
+                PrimaryKey(primaryKeyColumnName, primaryKeyName)
+            }
+
+
+        val foreignKeys = metaData.map { getImportedKeys(null, null, tableName)  }
+            .map {
+                val pkTableName = expectColumn("PKTABLE_NAME", String::class)
+                val fkTableName = expectColumn("FKTABLE_NAME", String::class)
+                val pkColumnName = expectColumn("PKCOLUMN_NAME", String::class)
+                var fkColumnName = expectColumn("FKCOLUMN_NAME", String::class)
                 println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
-            }
-        }
 
-        return null;
+                ForeignKey(pkTableName, pkColumnName, fkTableName, fkColumnName)
+            }
+
+
+        return Table(
+            name = tableName,
+            columns = columns,
+            primaryKeys = primaryKeys,
+            foreignKeys = foreignKeys
+        )
     }
 }
