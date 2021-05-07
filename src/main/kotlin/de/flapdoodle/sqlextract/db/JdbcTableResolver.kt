@@ -8,7 +8,8 @@ import java.sql.JDBCType
 
 
 class JdbcTableResolver(
-        private val connection: Connection
+        connection: Connection,
+        private val postProcess: (Table) -> Table = { it }
 ) : TableResolver {
 
     private val metaData: DatabaseMetaData = connection.metaData
@@ -40,7 +41,7 @@ class JdbcTableResolver(
 //                    println("$columnName -> ${JDBCType.valueOf(datatype)}")
 
                     Column(columnName, JDBCType.valueOf(datatype))
-                }
+                }.toSet()
 
         val primaryKeys = metaData.query { getPrimaryKeys(null, null, tableName) }
             .map {
@@ -49,7 +50,7 @@ class JdbcTableResolver(
 //                println("PK -> $primaryKeyColumnName - $primaryKeyName")
 
                 PrimaryKey(primaryKeyColumnName, primaryKeyName)
-            }
+            }.toSet()
 
 
         val foreignKeys = metaData.query { getImportedKeys(null, null, tableName)  }
@@ -61,14 +62,14 @@ class JdbcTableResolver(
 //                println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
 
                 ForeignKey(pkTableName, pkColumnName, fkTableName, fkColumnName)
-            }
+            }.toSet()
 
 
-        return Table(
+        return postProcess(Table(
             name = tableName,
             columns = columns,
             primaryKeys = primaryKeys,
             foreignKeys = foreignKeys
-        )
+        ))
     }
 }

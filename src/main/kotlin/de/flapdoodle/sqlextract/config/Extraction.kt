@@ -12,7 +12,8 @@ data class Extraction(
         val jdbcUrl: String,
         val user: String?,
         val password: String?,
-        val dataSets: List<DataSet>
+        val dataSets: List<DataSet>,
+        val foreignKeys: ForeignKeys
 ) {
     companion object {
         fun parse(basePath: Path, source: Attributes.Node): Extraction {
@@ -34,12 +35,17 @@ data class Extraction(
                 DataSet.parse(it, dataSetConfigs.get(it, Attributes.Node::class))
             }
 
+            val foreignKeyConfig = source.findValues("foreignKeys", List::class)
+
+            val foreignKeys = ForeignKeys.parse(foreignKeyConfig)
+
             return Extraction(
                     driver = basePath.resolve(driverPath),
                     className = className,
                     jdbcUrl = jdbcUrl,
                     user = user,
                     password = password,
+                    foreignKeys = foreignKeys,
                     dataSets = dataSets
             )
         }

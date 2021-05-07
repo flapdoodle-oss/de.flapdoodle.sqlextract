@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.Extraction
+import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.jdbc.query
 import java.net.URL
 import java.net.URLClassLoader
@@ -25,15 +26,18 @@ class Extractor {
         DriverManager.registerDriver(Wrapper(driver))
 
         val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
-        val tableResolver = JdbcTableResolver(connection)
-        val tableGraphWalker = TableGraphWalker(tableResolver)
+        val tableResolver = JdbcTableResolver(
+                connection = connection,
+                postProcess = addForeignKeys(config.foreignKeys)
+        )
+        val tableGraph = TableGraphWalker(tableResolver)
+                .with(config.foreignKeys.tables())
 
         connection.use { connection ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
-//                val table = tableResolver.byName(dataSet.table)
-                val graph = tableGraphWalker.startFrom(dataSet.table)
+                val graph = tableGraph.inspect(dataSet.table)
 
                 println("--> $graph")
 
@@ -58,6 +62,13 @@ class Extractor {
 //            while (rs.next()) {
 //                println("-> "+rs.getString(3))
 //            }
+        }
+    }
+
+    private fun addForeignKeys(foreignKeys: ForeignKeys): (Table) -> Table {
+        return {
+            val keys = foreignKeys.foreignKeys(it.name)
+            it.withForeignKeys(keys)
         }
     }
 
