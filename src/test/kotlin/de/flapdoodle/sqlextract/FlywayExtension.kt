@@ -6,7 +6,7 @@ import org.junit.jupiter.api.extension.*
 import java.sql.Connection
 import java.sql.Savepoint
 
-class FlywayExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
+class FlywayExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
     private val testConnection = TestConnection.default()
     private var connection: Connection? = null
     private var savepoint: Savepoint? = null
@@ -46,16 +46,12 @@ class FlywayExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback,
     }
 
 
-    class FlywayParameterResolver : ParameterResolver {
-        override fun supportsParameter(parameterContext: ParameterContext, context: ExtensionContext): Boolean {
-            return parameterContext.parameter.type
-                .equals(Connection::class.java)
-        }
+    override fun supportsParameter(parameterContext: ParameterContext, context: ExtensionContext): Boolean {
+        return parameterContext.parameter.type
+            .equals(Connection::class.java)
+    }
 
-        override fun resolveParameter(parameterContext: ParameterContext, context: ExtensionContext): Any {
-            //return context.get
-            return "WHAT?"
-        }
-
+    override fun resolveParameter(parameterContext: ParameterContext, context: ExtensionContext): Any {
+        return connection!!
     }
 }
