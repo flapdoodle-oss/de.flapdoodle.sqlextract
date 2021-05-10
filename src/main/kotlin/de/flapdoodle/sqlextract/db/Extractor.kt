@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
+import de.flapdoodle.sqlextract.jdbc.Connections
 import de.flapdoodle.sqlextract.jdbc.query
 import java.net.URL
 import java.net.URLClassLoader
@@ -15,17 +16,20 @@ class Extractor {
     fun extract(config: Extraction) {
         println("config: $config")
 
-        val driverUrl = "file://" + config.driver
-        val driverClassPath = URL(driverUrl)
-        val classLoader = URLClassLoader.newInstance(arrayOf(driverClassPath))
+//        val driverUrl = "file://" + config.driver
+//        val driverClassPath = URL(driverUrl)
+//        val classLoader = URLClassLoader.newInstance(arrayOf(driverClassPath))
+//
+//        val driver = Class.forName(config.className, true, classLoader)
+//            .getDeclaredConstructor()
+//            .newInstance() as Driver
+//
+//        DriverManager.registerDriver(Wrapper(driver))
+//
+//        val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
 
-        val driver = Class.forName(config.className, true, classLoader)
-            .getDeclaredConstructor()
-            .newInstance() as Driver
+        val connection = Connections.connection(config.jdbcUrl, config.className, config.user,config.password,config.driver)
 
-        DriverManager.registerDriver(Wrapper(driver))
-
-        val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
         val tableResolver = JdbcTableResolver(
                 connection = connection,
                 postProcess = addForeignKeys(config.foreignKeys)
@@ -33,7 +37,7 @@ class Extractor {
         val tableGraph = TableGraphWalker(tableResolver)
                 .with(config.foreignKeys.tables())
 
-        connection.use { connection ->
+        connection.use { con ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
@@ -45,7 +49,7 @@ class Extractor {
                 val table = graph.table(dataSet.table)
 
                 println("query: $sqlQuery")
-                connection.query { prepareStatement(sqlQuery).executeQuery() }
+                con.query { prepareStatement(sqlQuery).executeQuery() }
                         .map {
                             table.columns.forEach { column ->
                                 val value = column(column.name, Object::class)
@@ -72,5 +76,5 @@ class Extractor {
         }
     }
 
-    class Wrapper(wrapped: Driver) : Driver by wrapped
+//    class Wrapper(wrapped: Driver) : Driver by wrapped
 }
