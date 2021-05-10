@@ -1,13 +1,14 @@
 package de.flapdoodle.sqlextract.jdbc
 
-import de.flapdoodle.sqlextract.FlywayExtension
+import de.flapdoodle.sqlextract.SqlInitExtension
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 
-@ExtendWith(FlywayExtension::class)
+@ExtendWith(SqlInitExtension::class)
 internal class ResultSetAdapterTest {
 
     private val logger: Logger = LoggerFactory.getLogger(ResultSetAdapterTest::class.java)
@@ -20,6 +21,6 @@ internal class ResultSetAdapterTest {
             column("NAME", String::class)
         }
 
-        println("names: $names")
+        assertThat(names).containsExactly("Klaus")
     }
 }

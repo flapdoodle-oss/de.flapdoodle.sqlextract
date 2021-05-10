@@ -283,12 +283,6 @@
             <version>1.4.200</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-            <version>6.4.3</version>
-            <scope>test</scope>
-        </dependency>
 
         <!-- command line parsing -->
         <dependency>

@@ -1,32 +1,26 @@
 package de.flapdoodle.sqlextract
 
-import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.configuration.Configuration
 import org.junit.jupiter.api.extension.*
 import java.sql.Connection
 import java.sql.Savepoint
 
-class FlywayExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
+class SqlInitExtension  : BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback,
+    ParameterResolver {
     private val testConnection = TestConnection.default()
     private var connection: Connection? = null
     private var savepoint: Savepoint? = null
 
     override fun beforeAll(context: ExtensionContext) {
+        require(context.testClass.isPresent) {"no test class"}
+
+        val testClass = context.testClass.get();
+        val sql = testClass.getResource(testClass.simpleName+".sql").readText()
+
         connection = testConnection.connect().apply {
             autoCommit = false
+
+            prepareStatement(sql).execute()
         }
-
-        require(context.testClass.isPresent) {"no test class"}
-        val testClass = context.testClass.get();
-        val location = testClass.packageName.replace(".", "/")
-
-        println("textClass -> "+location)
-
-        val flyway = Flyway(Flyway.configure()
-            .locations(location)
-            .sqlMigrationPrefix(testClass.simpleName)
-            .dataSource(testConnection.jdbcUrl,testConnection.username, testConnection.password))
-        flyway.migrate()
     }
 
     override fun afterAll(context: ExtensionContext) {
