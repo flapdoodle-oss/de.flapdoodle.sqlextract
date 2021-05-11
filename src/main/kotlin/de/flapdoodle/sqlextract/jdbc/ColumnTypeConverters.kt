@@ -7,6 +7,7 @@ import kotlin.reflect.KClass
 
 object ColumnTypeConverters {
     private val map = MapBuilder()
+        .add(JDBCType.INTEGER, Int::class, ResultSet::getInt)
         .add(JDBCType.INTEGER, BigDecimal::class, ResultSet::getBigDecimal)
         .add(JDBCType.VARCHAR, String::class, ResultSet::getString)
         .build()
@@ -14,7 +15,7 @@ object ColumnTypeConverters {
     fun <T: Any> converter(jdbcType: JDBCType, type: KClass<T>): (ResultSet, String) ->T? {
         val converter = map[jdbcType to type]
         require(converter!=null) {"could not find converter for $jdbcType -> $type"}
-        return converter as (ResultSet, String) -> T?
+        return converter.converter as (ResultSet, String) -> T?
     }
 
     private class MapBuilder {

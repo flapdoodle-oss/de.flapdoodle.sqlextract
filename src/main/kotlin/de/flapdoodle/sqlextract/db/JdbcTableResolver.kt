@@ -32,15 +32,15 @@ class JdbcTableResolver(
         val columns = metaData.query { getColumns(null, null, tableName, null) }
                 .map {
                     val columnName = expectColumn("COLUMN_NAME", String::class)
-                    val datatype = expectColumn("DATA_TYPE", BigDecimal::class).intValueExact()
+                    val datatype = expectColumn("DATA_TYPE", Int::class)
 //                    val columnsize = columns.getString("COLUMN_SIZE")
 //                    val decimaldigits = columns.getString("DECIMAL_DIGITS")
-//                    val isNullable = columns.getString("IS_NULLABLE")
+                    val isNullable = expectColumn("IS_NULLABLE", String::class).toLowerCase() == "yes"
 //                    val is_autoIncrment = columns.getString("IS_AUTOINCREMENT")
 
 //                    println("$columnName -> ${JDBCType.valueOf(datatype)}")
 
-                    Column(columnName, JDBCType.valueOf(datatype))
+                    Column(columnName, JDBCType.valueOf(datatype), isNullable)
                 }.toSet()
 
         val primaryKeys = metaData.query { getPrimaryKeys(null, null, tableName) }
