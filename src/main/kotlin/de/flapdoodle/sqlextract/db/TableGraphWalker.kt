@@ -18,7 +18,7 @@ class TableGraphWalker(private val tableResolver: TableResolver) {
         private val tableMap = tables.associateBy { it.name }
 
         private val foreignKeyTablesNames = tables.flatMap { table ->
-            table.foreignKeys.map { fk -> fk.foreignTableName }
+            table.foreignKeys.map { fk -> fk.destinationTable }
         }.toSet()
 
         private val unknownTableNames = foreignKeyTablesNames - tableMap.keys

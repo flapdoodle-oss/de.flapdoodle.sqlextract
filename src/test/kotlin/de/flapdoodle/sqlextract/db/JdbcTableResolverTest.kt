@@ -1,7 +1,6 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.SqlInitExtension
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -12,7 +11,7 @@ import java.sql.JDBCType
 internal class JdbcTableResolverTest {
 
     @Test
-    fun foo(connection: Connection) {
+    fun withPK(connection: Connection) {
         val testee = JdbcTableResolver(connection)
         val withPK = testee.byName("WITH_PK")
 
@@ -28,7 +27,31 @@ internal class JdbcTableResolverTest {
         assertThat(withPK.primaryKeys)
             .allMatch { it.columnName == "ID" }
             .size().isEqualTo(1)
-        
+
         assertThat(withPK.foreignKeys).isEmpty()
+    }
+
+    @Test
+    fun withFK(connection: Connection) {
+        val testee = JdbcTableResolver(connection)
+        val withFK = testee.byName("WITH_FK")
+
+        assertThat(withFK.name).isEqualTo("WITH_FK")
+
+        assertThat(withFK.columns)
+            .containsExactlyInAnyOrder(
+                Column("ID", JDBCType.DECIMAL, false),
+                Column("NAME", JDBCType.VARCHAR, false),
+                Column("REF", JDBCType.DECIMAL, true)
+            )
+
+        assertThat(withFK.primaryKeys)
+            .allMatch { it.columnName == "ID" }
+            .size().isEqualTo(1)
+
+        assertThat(withFK.foreignKeys)
+            .containsExactlyInAnyOrder(
+                ForeignKey("WITH_FK","REF","WITH_PK","ID")
+            )
     }
 }

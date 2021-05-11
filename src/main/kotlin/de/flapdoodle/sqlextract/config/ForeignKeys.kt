@@ -6,12 +6,12 @@ data class ForeignKeys(val list: List<ForeignKey>) {
 
     fun foreignKeys(tableName: String): List<ForeignKey> {
         return list.filter {
-            it.tableName == tableName
+            it.sourceTable == tableName
         }
     }
 
     fun tables(): Set<String> {
-        return list.map { it.tableName }.toSet()
+        return list.map { it.sourceTable }.toSet()
     }
 
     companion object {
@@ -33,10 +33,10 @@ data class ForeignKeys(val list: List<ForeignKey>) {
             val s = tableAndColumn(source)
             val d = tableAndColumn(destination)
             return ForeignKey(
-                    tableName = s.first,
-                    columnName = s.second,
-                    foreignTableName = d.first,
-                    foreignColumnName = d.second
+                    sourceTable = s.first,
+                    sourceColumn = s.second,
+                    destinationTable = d.first,
+                    destinationColumn = d.second
             )
         }
 

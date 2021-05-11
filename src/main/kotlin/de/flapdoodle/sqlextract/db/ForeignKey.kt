@@ -1,9 +1,9 @@
 package de.flapdoodle.sqlextract.db
 
 data class ForeignKey(
-    val tableName: String,
-    val columnName: String,
+    val sourceTable: String,
+    val sourceColumn: String,
 
-    val foreignTableName: String,
-    var foreignColumnName: String
+    val destinationTable: String,
+    var destinationColumn: String
 )

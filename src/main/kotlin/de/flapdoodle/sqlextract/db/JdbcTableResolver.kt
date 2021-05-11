@@ -1,7 +1,6 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.jdbc.query
-import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.JDBCType
@@ -61,7 +60,12 @@ class JdbcTableResolver(
                 val fkColumnName = expectColumn("FKCOLUMN_NAME", String::class)
 //                println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
 
-                ForeignKey(pkTableName, pkColumnName, fkTableName, fkColumnName)
+                ForeignKey(
+                    sourceTable = fkTableName,
+                    sourceColumn = fkColumnName,
+                    destinationTable = pkTableName,
+                    destinationColumn = pkColumnName
+                )
             }.toSet()
 
 
