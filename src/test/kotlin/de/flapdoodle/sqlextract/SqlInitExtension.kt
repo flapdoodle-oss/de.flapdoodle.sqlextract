@@ -14,7 +14,11 @@ class SqlInitExtension  : BeforeAllCallback, AfterAllCallback, BeforeEachCallbac
         require(context.testClass.isPresent) {"no test class"}
 
         val testClass = context.testClass.get();
-        val sql = testClass.getResource(testClass.simpleName+".sql").readText()
+        val sqlResource = testClass.getResource(testClass.simpleName + ".sql")
+
+        require(sqlResource!=null) {"could not find sql for $testClass"}
+        
+        val sql = sqlResource.readText()
 
         connection = testConnection.connect().apply {
             autoCommit = false

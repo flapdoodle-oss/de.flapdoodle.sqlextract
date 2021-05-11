@@ -1,0 +1,32 @@
+package de.flapdoodle.sqlextract.jdbc
+
+import java.math.BigDecimal
+import java.sql.JDBCType
+import java.sql.ResultSet
+import kotlin.reflect.KClass
+
+object ColumnTypeConverters {
+    private val map = MapBuilder()
+        .add(JDBCType.INTEGER, BigDecimal::class, ResultSet::getBigDecimal)
+        .add(JDBCType.VARCHAR, String::class, ResultSet::getString)
+        .build()
+
+    fun <T: Any> converter(jdbcType: JDBCType, type: KClass<T>): (ResultSet, String) ->T? {
+        val converter = map[jdbcType to type]
+        require(converter!=null) {"could not find converter for $jdbcType -> $type"}
+        return converter as (ResultSet, String) -> T?
+    }
+
+    private class MapBuilder {
+        private var map= emptyMap<Pair<JDBCType, KClass<*>>, ColumnTypeConverter<*>>()
+
+        fun <T: Any> add(jdbcType: JDBCType, type: KClass<T>, converter: (ResultSet, String) -> T?): MapBuilder {
+            map = map + ((jdbcType to type) to ColumnTypeConverter(jdbcType,type,converter))
+            return this;
+        }
+
+        fun build(): Map<Pair<JDBCType, KClass<*>>, ColumnTypeConverter<*>> {
+            return map
+        }
+    }
+}

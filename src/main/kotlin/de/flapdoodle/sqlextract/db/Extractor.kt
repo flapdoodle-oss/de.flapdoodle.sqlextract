@@ -16,18 +16,6 @@ class Extractor {
     fun extract(config: Extraction) {
         println("config: $config")
 
-//        val driverUrl = "file://" + config.driver
-//        val driverClassPath = URL(driverUrl)
-//        val classLoader = URLClassLoader.newInstance(arrayOf(driverClassPath))
-//
-//        val driver = Class.forName(config.className, true, classLoader)
-//            .getDeclaredConstructor()
-//            .newInstance() as Driver
-//
-//        DriverManager.registerDriver(Wrapper(driver))
-//
-//        val connection: Connection = DriverManager.getConnection(config.jdbcUrl, config.user, config.password)
-
         val connection = Connections.connection(config.jdbcUrl, config.className, config.user,config.password,config.driver)
 
         val tableResolver = JdbcTableResolver(
