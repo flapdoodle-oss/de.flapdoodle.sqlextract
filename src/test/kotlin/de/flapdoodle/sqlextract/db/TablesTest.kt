@@ -44,19 +44,9 @@ internal class TablesTest {
     }
 
     @Test
-    fun resolveMissingTablesOnInit() {
-        val testee = Tables.tables(listOf("foo","bar"), resolver)
-
-        assertThat(testee.find("foo")).isNotNull
-        assertThat(testee.find("bar")).isNotNull
-        assertThat(testee.find("baz")).isNotNull
-    }
-
-    @Test
     fun resolveMissingTablesOnAdd() {
-        val empty = Tables()
-        val testee = empty.add("foo", resolver)
-        
+        val testee = Tables.empty().add(listOf("foo","bar"), resolver)
+
         assertThat(testee.find("foo")).isNotNull
         assertThat(testee.find("bar")).isNotNull
         assertThat(testee.find("baz")).isNotNull

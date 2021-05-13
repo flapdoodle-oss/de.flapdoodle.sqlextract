@@ -4,11 +4,6 @@ import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.jdbc.Connections
 import de.flapdoodle.sqlextract.jdbc.query
-import java.net.URL
-import java.net.URLClassLoader
-import java.sql.Connection
-import java.sql.Driver
-import java.sql.DriverManager
 
 
 class Extractor {
@@ -16,21 +11,20 @@ class Extractor {
     fun extract(config: Extraction) {
         println("config: $config")
 
-        val connection = Connections.connection(config.jdbcUrl, config.className, config.user,config.password,config.driver)
+        val connection =
+            Connections.connection(config.jdbcUrl, config.className, config.user, config.password, config.driver)
 
-        val tableResolver = JdbcTableResolver(
-                connection = connection,
-                postProcess = addForeignKeys(config.foreignKeys)
-        )
-
-        val baseTables = Tables.tables(config.foreignKeys.tables(), tableResolver)
-
+        val tableResolver = CachingTableResolverWrapper(JdbcTableResolver(
+            connection = connection,
+            postProcess = addForeignKeys(config.foreignKeys)
+        ))
 
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
-                val dataSetTables = baseTables.add(dataSet.table, tableResolver)
+                val dataSetTables = Tables.empty()
+                    .add(dataSet.include + dataSet.table, tableResolver)
 
                 val table = dataSetTables.get(dataSet.table)
 
@@ -38,12 +32,12 @@ class Extractor {
 
                 println("query: $sqlQuery")
                 con.query { prepareStatement(sqlQuery).executeQuery() }
-                        .map {
-                            table.columns.forEach { column ->
-                                val value = column(column.name, Object::class)
-                                println("${column.name}=$value")
-                            }
+                    .map {
+                        table.columns.forEach { column ->
+                            val value = column(column.name, Object::class)
+                            println("${column.name}=$value")
                         }
+                    }
 //                val statement = connection.prepareStatement(sqlQuery)
 //                val resultSet = statement.executeQuery()
 //                while (resultSet.next()) {

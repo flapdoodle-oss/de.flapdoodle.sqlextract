@@ -9,10 +9,11 @@ data class Tables internal constructor(
 
     fun get(name: String): Table {
         val table = find(name)
-        require(table!=null) {"could not find table: $name"}
+        require(table != null) { "could not find table: $name" }
         return table
     }
 
+    @Deprecated("use add(names...)")
     fun add(name: String, resolver: TableResolver): Tables {
         return if (!byName.containsKey(name)) {
             add(resolver.byName(name))
@@ -20,6 +21,16 @@ data class Tables internal constructor(
         } else {
             this
         }
+    }
+
+    fun add(names: Iterable<String>, resolver: TableResolver): Tables {
+        val newTables = names.filter { !byName.containsKey(it) }
+            .map(resolver::byName)
+
+        return if (newTables.isNotEmpty())
+            copy(list = list + newTables).resolveMissingTables(resolver)
+        else
+            this
     }
 
     private fun add(table: Table): Tables {
@@ -47,8 +58,6 @@ data class Tables internal constructor(
 
 
     companion object {
-        fun tables(names: Iterable<String>, resolver: TableResolver): Tables {
-            return Tables(names.map(resolver::byName)).resolveMissingTables(resolver)
-        }
+        fun empty() = Tables()
     }
 }
