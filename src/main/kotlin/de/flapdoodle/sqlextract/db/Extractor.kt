@@ -22,19 +22,19 @@ class Extractor {
                 connection = connection,
                 postProcess = addForeignKeys(config.foreignKeys)
         )
-        val tableGraph = TableGraphWalker(tableResolver)
-                .with(config.foreignKeys.tables())
+
+        val baseTables = Tables.tables(config.foreignKeys.tables(), tableResolver)
+
 
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
-                val graph = tableGraph.inspect(dataSet.table)
+                val dataSetTables = baseTables.add(dataSet.table, tableResolver)
 
-                println("--> $graph")
+                val table = dataSetTables.get(dataSet.table)
 
                 val sqlQuery = "select * from ${dataSet.table} where ${dataSet.where}"
-                val table = graph.table(dataSet.table)
 
                 println("query: $sqlQuery")
                 con.query { prepareStatement(sqlQuery).executeQuery() }
