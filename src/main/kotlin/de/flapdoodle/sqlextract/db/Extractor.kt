@@ -74,7 +74,7 @@ class Extractor {
 
     private fun addForeignKeys(foreignKeys: ForeignKeys): (Table) -> Table {
         return {
-            val keys = foreignKeys.foreignKeys(it.name)
+            val keys = foreignKeys.foreignKeys(it.name.name)
             it.withForeignKeys(keys)
         }
     }

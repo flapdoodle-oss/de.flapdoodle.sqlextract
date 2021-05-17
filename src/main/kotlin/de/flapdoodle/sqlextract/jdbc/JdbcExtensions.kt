@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.jdbc
 
+import de.flapdoodle.sqlextract.db.Name
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.ResultSet
@@ -14,10 +15,10 @@ fun Connection.query(resultSetFactory: Connection.() -> ResultSet): ResultSetAda
     return ResultSetAdapter { resultSetFactory(con) }
 }
 
-fun DatabaseMetaData.table(name: String): JdbcTable {
-    val ret = query { getTables(null, null, name, arrayOf("TABLE")) }
+fun DatabaseMetaData.table(name: String, schema: String?): JdbcTable {
+    val ret = query { getTables(null, schema, name, arrayOf("TABLE")) }
             .map(JdbcTable.rowMapper())
-    require(ret.size==1) {"more or less then one entry: $ret"}
+    require(ret.size == 1) { "more or less then one entry: $ret" }
     return ret.single()
 }
 
@@ -27,9 +28,7 @@ fun DatabaseMetaData.tables(): List<JdbcTable> {
 }
 
 data class JdbcTable(
-        val name: String,
-        val catalog: String?,
-        val schema: String?,
+        val name: Name,
         val type: String,
         val remarks: String?
 ) {
@@ -42,9 +41,9 @@ data class JdbcTable(
                 val type = expectColumn("TABLE_TYPE", String::class)
                 val remarks = column("REMARKS", String::class)
                 JdbcTable(
-                        catalog = catalog,
-                        schema = schema,
-                        name = name,
+                        name = Name(name = name,
+                                catalog = catalog,
+                                schema = schema),
                         type = type,
                         remarks = remarks
                 )

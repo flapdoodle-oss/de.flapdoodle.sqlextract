@@ -3,9 +3,9 @@ package de.flapdoodle.sqlextract.db
 class CachingTableResolverWrapper(
     private val delegate: TableResolver
 ) : TableResolver {
-    private var tableMap = emptyMap<String, Table>()
+    private var tableMap = emptyMap<Name, Table>()
 
-    override fun byName(name: String): Table {
+    override fun byName(name: Name): Table {
         val cachedValue = tableMap[name]
 
         return if (cachedValue!=null) {

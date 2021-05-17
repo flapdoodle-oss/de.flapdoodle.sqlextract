@@ -5,16 +5,16 @@ data class Tables internal constructor(
 ) {
     private val byName = list.associateBy { it.name }
 
-    fun find(name: String): Table? = byName[name]
+    fun find(name: Name): Table? = byName[name]
 
-    fun get(name: String): Table {
+    fun get(name: Name): Table {
         val table = find(name)
         require(table != null) { "could not find table: $name" }
         return table
     }
 
     @Deprecated("use add(names...)")
-    fun add(name: String, resolver: TableResolver): Tables {
+    fun add(name: Name, resolver: TableResolver): Tables {
         return if (!byName.containsKey(name)) {
             add(resolver.byName(name))
                 .resolveMissingTables(resolver)
@@ -23,7 +23,7 @@ data class Tables internal constructor(
         }
     }
 
-    fun add(names: Iterable<String>, resolver: TableResolver): Tables {
+    fun add(names: Iterable<Name>, resolver: TableResolver): Tables {
         val newTables = names.filter { !byName.containsKey(it) }
             .map(resolver::byName)
 
@@ -38,8 +38,8 @@ data class Tables internal constructor(
         return copy(list = list + table)
     }
 
-    internal fun missingTableDefinitions(): List<String> {
-        val foreignKeyDestinationTables = list.flatMap { it.foreignKeys }.map { it.destinationTable }
+    internal fun missingTableDefinitions(): List<Name> {
+        val foreignKeyDestinationTables = list.flatMap { it.destinationTables() }
         return foreignKeyDestinationTables - byName.keys
     }
 

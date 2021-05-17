@@ -13,7 +13,7 @@ internal class JdbcTableResolverTest {
     @Test
     fun withPK(connection: Connection) {
         val testee = JdbcTableResolver(connection)
-        val withPK = testee.byName("WITH_PK")
+        val withPK = testee.byName(Name("WITH_PK"))
 
         assertThat(withPK.name).isEqualTo("WITH_PK")
 
@@ -34,7 +34,7 @@ internal class JdbcTableResolverTest {
     @Test
     fun withFK(connection: Connection) {
         val testee = JdbcTableResolver(connection)
-        val withFK = testee.byName("WITH_FK")
+        val withFK = testee.byName(Name("WITH_FK"))
 
         assertThat(withFK.name).isEqualTo("WITH_FK")
 

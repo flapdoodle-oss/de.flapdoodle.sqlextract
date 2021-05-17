@@ -1,5 +1,5 @@
 package de.flapdoodle.sqlextract.db
 
 fun interface TableResolver {
-    fun byName(name: String): Table
+    fun byName(name: Name): Table
 }

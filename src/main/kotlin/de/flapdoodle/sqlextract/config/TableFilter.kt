@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.config
 
+import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.filetypes.Attributes
 import java.util.function.Predicate
 import java.util.regex.Pattern
@@ -12,8 +13,12 @@ data class TableFilter(
     private val excludesMatcher: List<Predicate<String>> = excludes.map(::matchNameOrRegex)
 
     fun matchingTableName(name: String): Boolean {
-        val ret = ((includesMatcher.isEmpty() || includesMatcher.any { it.test(name) })
-                && excludesMatcher.none { it.test(name) })
+        return matchingTableName(Name(name))
+    }
+    
+    fun matchingTableName(name: Name): Boolean {
+        val ret = ((includesMatcher.isEmpty() || includesMatcher.any { it.test(name.name) })
+                && excludesMatcher.none { it.test(name.name) })
 //        println("$name -> $ret")
         return ret
     }

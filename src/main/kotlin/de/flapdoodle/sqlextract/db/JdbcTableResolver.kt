@@ -20,10 +20,10 @@ class JdbcTableResolver(
 //        String table_catalog = schemas.getString("TABLE_CATALOG");
 //    }
 
-    override fun byName(name: String): Table {
-        val table = metaData.table(name)
+    override fun byName(name: Name): Table {
+        val table = metaData.table(name.name, name.schema)
 
-        val columns = metaData.query { getColumns(null, table.schema, table.name, null) }
+        val columns = metaData.query { getColumns(null, table.name.schema, table.name.name, null) }
                 .map {
                     val columnName = expectColumn("COLUMN_NAME", String::class)
                     val datatype = expectColumn("DATA_TYPE", Int::class)
@@ -37,7 +37,7 @@ class JdbcTableResolver(
                     Column(columnName, JDBCType.valueOf(datatype), isNullable)
                 }.toSet()
 
-        val primaryKeys = metaData.query { getPrimaryKeys(null, table.schema, table.name) }
+        val primaryKeys = metaData.query { getPrimaryKeys(null, table.name.schema, table.name.name) }
             .map {
                 val primaryKeyColumnName = expectColumn("COLUMN_NAME", String::class)
                 val primaryKeyName = expectColumn("PK_NAME", String::class)
@@ -47,7 +47,7 @@ class JdbcTableResolver(
             }.toSet()
 
 
-        val foreignKeys = metaData.query { getImportedKeys(null, table.schema, table.name)  }
+        val foreignKeys = metaData.query { getImportedKeys(null, table.name.schema, table.name.name)  }
             .map {
                 val pkTableName = expectColumn("PKTABLE_NAME", String::class)
                 val fkTableName = expectColumn("FKTABLE_NAME", String::class)
@@ -67,7 +67,6 @@ class JdbcTableResolver(
         return postProcess(
             Table(
                 name = table.name,
-                schema = table.schema,
                 columns = columns,
                 primaryKeys = primaryKeys,
                 foreignKeys = foreignKeys
