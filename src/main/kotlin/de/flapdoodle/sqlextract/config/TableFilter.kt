@@ -12,8 +12,10 @@ data class TableFilter(
     private val excludesMatcher: List<Predicate<String>> = excludes.map(::matchNameOrRegex)
 
     fun matchingTableName(name: String): Boolean {
-        return (includesMatcher.isEmpty() || includesMatcher.any { it.test(name) })
-                && excludesMatcher.none { it.test(name) }
+        val ret = ((includesMatcher.isEmpty() || includesMatcher.any { it.test(name) })
+                && excludesMatcher.none { it.test(name) })
+//        println("$name -> $ret")
+        return ret
     }
 
     companion object {

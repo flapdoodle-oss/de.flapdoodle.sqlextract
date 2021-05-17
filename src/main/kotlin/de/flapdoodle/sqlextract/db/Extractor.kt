@@ -28,8 +28,12 @@ class Extractor {
                 val name = expectColumn("TABLE_NAME", String::class)
                 val type = expectColumn("TABLE_TYPE", String::class)
                 val remarks = column("REMARKS", String::class)
-                println("-> $name ($type) - $remarks")
-                name
+                name to type
+            }.filter {  (name,type) ->
+                    type == "TABLE"
+            }.map {  (name,type) ->
+//                    println("-> $name ($type)")
+                    name
             }
         println("-------------------------")
         println()
