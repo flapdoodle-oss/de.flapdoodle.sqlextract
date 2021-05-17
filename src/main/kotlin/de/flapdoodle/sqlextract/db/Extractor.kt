@@ -19,6 +19,8 @@ class Extractor {
             postProcess = addForeignKeys(config.foreignKeys)
         ))
 
+        println("All Tables")
+        println("-------------------------")
         val tableNames = connection.metaData.query { getTables(null, null, "%", null) }
             .map {
                 val catalog = column("TABLE_CAT", String::class)
@@ -26,8 +28,11 @@ class Extractor {
                 val name = expectColumn("TABLE_NAME", String::class)
                 val type = expectColumn("TABLE_TYPE", String::class)
                 val remarks = column("REMARKS", String::class)
+                println("-> $name ($type) - $remarks")
                 name
             }
+        println("-------------------------")
+        println()
 
         val includedTables = tableNames.filter(config.tableFilter::matchingTableName)
 
