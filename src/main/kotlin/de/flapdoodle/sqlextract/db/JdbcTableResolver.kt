@@ -2,7 +2,6 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.jdbc.query
 import de.flapdoodle.sqlextract.jdbc.table
-import de.flapdoodle.sqlextract.jdbc.tables
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.JDBCType
@@ -23,9 +22,8 @@ class JdbcTableResolver(
 
     override fun byName(name: String): Table {
         val table = metaData.table(name)
-        val tableName = table.name
 
-        val columns = metaData.query { getColumns(null, null, tableName, null) }
+        val columns = metaData.query { getColumns(null, table.schema, table.name, null) }
                 .map {
                     val columnName = expectColumn("COLUMN_NAME", String::class)
                     val datatype = expectColumn("DATA_TYPE", Int::class)
@@ -39,7 +37,7 @@ class JdbcTableResolver(
                     Column(columnName, JDBCType.valueOf(datatype), isNullable)
                 }.toSet()
 
-        val primaryKeys = metaData.query { getPrimaryKeys(null, null, tableName) }
+        val primaryKeys = metaData.query { getPrimaryKeys(null, table.schema, table.name) }
             .map {
                 val primaryKeyColumnName = expectColumn("COLUMN_NAME", String::class)
                 val primaryKeyName = expectColumn("PK_NAME", String::class)
@@ -49,7 +47,7 @@ class JdbcTableResolver(
             }.toSet()
 
 
-        val foreignKeys = metaData.query { getImportedKeys(null, null, tableName)  }
+        val foreignKeys = metaData.query { getImportedKeys(null, table.schema, table.name)  }
             .map {
                 val pkTableName = expectColumn("PKTABLE_NAME", String::class)
                 val fkTableName = expectColumn("FKTABLE_NAME", String::class)
@@ -66,11 +64,13 @@ class JdbcTableResolver(
             }.toSet()
 
 
-        return postProcess(Table(
-            name = tableName,
-            columns = columns,
-            primaryKeys = primaryKeys,
-            foreignKeys = foreignKeys
-        ))
+        return postProcess(
+            Table(
+                name = table.name,
+                schema = table.schema,
+                columns = columns,
+                primaryKeys = primaryKeys,
+                foreignKeys = foreignKeys
+            ))
     }
 }
