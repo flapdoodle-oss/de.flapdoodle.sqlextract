@@ -47,16 +47,16 @@ class Extractor {
         }
         println("-------------------------")
 
-        // alle tabellen zum graph parsen
+        val tables = Tables.empty().add(includedTables, tableResolver)
 
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
 
-                val dataSetTables = Tables.empty()
-                    .add(dataSet.include + dataSet.table, tableResolver)
+//                val dataSetTables = Tables.empty()
+//                    .add(dataSet.include + dataSet.table, tableResolver)
 
-                val table = dataSetTables.get(dataSet.table)
+                val table = tables.get(dataSet.table)
 
                 val sqlQuery = "select * from ${dataSet.table} where ${dataSet.where}"
 
