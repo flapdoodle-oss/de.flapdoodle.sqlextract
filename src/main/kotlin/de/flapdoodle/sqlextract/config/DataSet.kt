@@ -2,7 +2,6 @@ package de.flapdoodle.sqlextract.config
 
 import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.filetypes.Attributes
-import java.nio.file.Path
 
 data class DataSet(
         val name: String,
@@ -25,7 +24,7 @@ data class DataSet(
             val tableName=table.substring(idx+1)
             val schema = table.substring(0,idx)
 
-            return DataSet(name, Name(tableName,null,schema), where, include ?: emptyList())
+            return DataSet(name, Name(tableName, schema), where, include ?: emptyList())
         }
     }
 }

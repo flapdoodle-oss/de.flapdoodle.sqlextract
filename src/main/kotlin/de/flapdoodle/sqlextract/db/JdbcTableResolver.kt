@@ -21,6 +21,7 @@ class JdbcTableResolver(
 //    }
 
     override fun byName(name: Name): Table {
+        println("inspect $name")
         val table = metaData.table(name.name, name.schema)
 
         val columns = metaData.query { getColumns(null, table.name.schema, table.name.name, null) }

@@ -6,19 +6,19 @@ import org.junit.jupiter.api.Test
 internal class TablesTest {
 
     private val fooTable = Table(
-        name = Name("foo"), foreignKeys = setOf(
+        name = Name.parse("foo"), foreignKeys = setOf(
             ForeignKey("foo", "BAR_ID", "bar", "ID")
         )
     )
 
     private val barTable = Table(
-        name = Name("bar"), foreignKeys = setOf(
+        name = Name.parse("bar"), foreignKeys = setOf(
             ForeignKey("bar", "BAZ_ID", "baz", "ID")
         )
     )
 
     private val bazTable = Table(
-        name = Name("baz")
+        name = Name.parse("baz")
     )
 
     private val resolver: (name: Name) -> Table = { name ->
@@ -40,15 +40,15 @@ internal class TablesTest {
         )
 
         assertThat(testee.missingTableDefinitions())
-            .containsExactly(Name("baz"))
+            .containsExactly(Name.parse("baz"))
     }
 
     @Test
     fun resolveMissingTablesOnAdd() {
-        val testee = Tables.empty().add(listOf<Name>(Name("foo"),Name("bar")), resolver)
+        val testee = Tables.empty().add(listOf<Name>(Name.parse("foo"),Name.parse("bar")), resolver)
 
-        assertThat(testee.find(Name("foo"))).isNotNull
-        assertThat(testee.find(Name("bar"))).isNotNull
-        assertThat(testee.find(Name("baz"))).isNotNull
+        assertThat(testee.find(Name.parse("foo"))).isNotNull
+        assertThat(testee.find(Name.parse("bar"))).isNotNull
+        assertThat(testee.find(Name.parse("baz"))).isNotNull
     }
 }

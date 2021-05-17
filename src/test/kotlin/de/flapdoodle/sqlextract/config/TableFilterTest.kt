@@ -1,9 +1,11 @@
 package de.flapdoodle.sqlextract.config
 
+import de.flapdoodle.sqlextract.db.Name
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.util.*
 
 internal class TableFilterTest {
 
@@ -22,17 +24,17 @@ internal class TableFilterTest {
     @Test
     fun exactMatchMustOnlyMatchFullTableName() {
         val testee = TableFilter.Companion.ExactMatch("FOO")
-        assertThat(testee.test("FOO")).isTrue
-        assertThat(testee.test("FOOO")).isFalse
+        assertThat(testee.test(table("FOO"))).isTrue
+        assertThat(testee.test(table("FOOO"))).isFalse
     }
 
     @Test
     fun patternMatchMustFindRegexInTableName() {
         val testee = TableFilter.Companion.PatternMatch("FOO_")
-        assertThat(testee.test("FOO_")).isTrue
-        assertThat(testee.test("FOO_BAR")).isTrue
-        assertThat(testee.test("_FOO_BAR")).isTrue
-        assertThat(testee.test("_FO_BAR")).isFalse
+        assertThat(testee.test(table("FOO_"))).isTrue
+        assertThat(testee.test(table("FOO_BAR"))).isTrue
+        assertThat(testee.test(table("_FOO_BAR"))).isTrue
+        assertThat(testee.test(table("_FO_BAR"))).isFalse
     }
 
     @Test
@@ -40,8 +42,10 @@ internal class TableFilterTest {
         val matcher = TableFilter.matchNameOrRegex("EXACT_MATCH")
         
         assertThat(matcher)
-            .isInstanceOf(TableFilter.Companion.ExactMatch::class.java)
-            .isEqualTo(TableFilter.Companion.ExactMatch("EXACT_MATCH"))
+            .isEqualTo( TableFilter.Companion.And(
+                    first = TableFilter.Companion.ExactMatch("EXACT_MATCH"),
+                    second = TableFilter.Companion.AnySchema
+            ))
     }
 
     @Test
@@ -49,30 +53,36 @@ internal class TableFilterTest {
         val matcher = TableFilter.matchNameOrRegex("^EXACT_MATCH")
 
         assertThat(matcher)
-            .isInstanceOf(TableFilter.Companion.PatternMatch::class.java)
-            .isEqualTo(TableFilter.Companion.PatternMatch("^EXACT_MATCH"))
+                .isEqualTo( TableFilter.Companion.And(
+                        first = TableFilter.Companion.PatternMatch("^EXACT_MATCH"),
+                        second = TableFilter.Companion.AnySchema
+                ))
     }
 
 
     @Test
     fun matchEveryTableBecauseNothingIsExcluded() {
         val testee = TableFilter(includes = emptySet(), excludes = emptySet())
-        assertThat(testee.matchingTableName("FOO")).isTrue
+        assertThat(testee.matchingTableName("S.FOO")).isTrue
     }
 
     @Test
     fun matchEveryIncludedTable() {
         val testee = TableFilter(includes = setOf("FOO","BAR"), excludes = emptySet())
-        assertThat(testee.matchingTableName("FOO")).isTrue
-        assertThat(testee.matchingTableName("BAR")).isTrue
-        assertThat(testee.matchingTableName("BAZ")).isFalse
+        assertThat(testee.matchingTableName("S.FOO")).isTrue
+        assertThat(testee.matchingTableName("S.BAR")).isTrue
+        assertThat(testee.matchingTableName("S.BAZ")).isFalse
     }
 
     @Test
     fun dontMatchTableIfExcluded() {
         val testee = TableFilter(includes = setOf("FOO","BAR"), excludes = setOf("BAR"))
-        assertThat(testee.matchingTableName("FOO")).isTrue
-        assertThat(testee.matchingTableName("BAR")).isFalse
-        assertThat(testee.matchingTableName("BAZ")).isFalse
+        assertThat(testee.matchingTableName("S.FOO")).isTrue
+        assertThat(testee.matchingTableName("S.BAR")).isFalse
+        assertThat(testee.matchingTableName("S.BAZ")).isFalse
+    }
+
+    private fun table(name: String): Name {
+        return Name(name = name, schema = UUID.randomUUID().toString())
     }
 }

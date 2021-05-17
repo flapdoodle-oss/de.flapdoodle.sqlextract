@@ -18,7 +18,6 @@ data class Table(
         return foreignKeys.map {
             Name(
                     name = it.destinationTable,
-                    catalog = name.catalog,
                     schema = name.schema
             )
         }.toSet()

@@ -24,6 +24,7 @@ class Extractor {
         println("All Tables")
         println("-------------------------")
         val tableNames = connection.metaData.tables().map {  table ->
+            println("--> ${table.name}")
                     table.name
             }
         println("-------------------------")

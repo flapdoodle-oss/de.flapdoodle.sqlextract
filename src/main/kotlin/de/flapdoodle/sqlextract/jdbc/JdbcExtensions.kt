@@ -36,13 +36,12 @@ data class JdbcTable(
         fun rowMapper(): ResultSetRow.() -> JdbcTable {
             return {
                 val catalog = column("TABLE_CAT", String::class)
-                val schema = column("TABLE_SCHEM", String::class)
+                val schema = expectColumn("TABLE_SCHEM", String::class)
                 val name = expectColumn("TABLE_NAME", String::class)
                 val type = expectColumn("TABLE_TYPE", String::class)
                 val remarks = column("REMARKS", String::class)
                 JdbcTable(
                         name = Name(name = name,
-                                catalog = catalog,
                                 schema = schema),
                         type = type,
                         remarks = remarks
