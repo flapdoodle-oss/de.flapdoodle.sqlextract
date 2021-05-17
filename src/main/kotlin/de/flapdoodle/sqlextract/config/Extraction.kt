@@ -7,13 +7,14 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 data class Extraction(
-        val driver: Path,
-        val className: String,
-        val jdbcUrl: String,
-        val user: String?,
-        val password: String?,
-        val dataSets: List<DataSet>,
-        val foreignKeys: ForeignKeys
+    val driver: Path,
+    val className: String,
+    val jdbcUrl: String,
+    val user: String?,
+    val password: String?,
+    val dataSets: List<DataSet>,
+    val foreignKeys: ForeignKeys,
+    val tableFilter: TableFilter
 ) {
     companion object {
         fun parse(basePath: Path, source: Attributes.Node): Extraction {
@@ -27,6 +28,9 @@ data class Extraction(
             require(className != null) { "className not set" }
             require(jdbcUrl != null) { "className not set" }
 
+            val tableFilter = TableFilter.parse(source.find("tables", Attributes.Node::class));
+            val foreignKeys = ForeignKeys.parse(source.findValues("foreignKeys", List::class))
+
             val dataSetConfigs = source.find("dataset", Attributes.Node::class)
 
             require(dataSetConfigs != null) { "at least one dataset must be defined" }
@@ -35,18 +39,15 @@ data class Extraction(
                 DataSet.parse(it, dataSetConfigs.get(it, Attributes.Node::class))
             }
 
-            val foreignKeyConfig = source.findValues("foreignKeys", List::class)
-
-            val foreignKeys = ForeignKeys.parse(foreignKeyConfig)
-
             return Extraction(
-                    driver = basePath.resolve(driverPath),
-                    className = className,
-                    jdbcUrl = jdbcUrl,
-                    user = user,
-                    password = password,
-                    foreignKeys = foreignKeys,
-                    dataSets = dataSets
+                driver = basePath.resolve(driverPath),
+                className = className,
+                jdbcUrl = jdbcUrl,
+                user = user,
+                password = password,
+                foreignKeys = foreignKeys,
+                dataSets = dataSets,
+                tableFilter = tableFilter
             )
         }
 

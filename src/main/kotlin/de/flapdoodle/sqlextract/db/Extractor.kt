@@ -19,6 +19,27 @@ class Extractor {
             postProcess = addForeignKeys(config.foreignKeys)
         ))
 
+        val tableNames = connection.metaData.query { getTables(null, null, "%", null) }
+            .map {
+                val catalog = column("TABLE_CAT", String::class)
+                val schema = column("TABLE_SCHEM", String::class)
+                val name = expectColumn("TABLE_NAME", String::class)
+                val type = expectColumn("TABLE_TYPE", String::class)
+                val remarks = column("REMARKS", String::class)
+                name
+            }
+
+        val includedTables = tableNames.filter(config.tableFilter::matchingTableName)
+
+        println("Tables")
+        println("-------------------------")
+        includedTables.forEach {
+            println("-> $it")
+        }
+        println("-------------------------")
+
+        // alle tabellen zum graph parsen
+
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
                 println("-> ${dataSet.name}")
