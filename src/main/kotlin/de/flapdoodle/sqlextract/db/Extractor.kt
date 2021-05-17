@@ -4,6 +4,8 @@ import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.jdbc.Connections
 import de.flapdoodle.sqlextract.jdbc.query
+import de.flapdoodle.sqlextract.jdbc.table
+import de.flapdoodle.sqlextract.jdbc.tables
 
 
 class Extractor {
@@ -21,19 +23,8 @@ class Extractor {
 
         println("All Tables")
         println("-------------------------")
-        val tableNames = connection.metaData.query { getTables(null, null, "%", null) }
-            .map {
-                val catalog = column("TABLE_CAT", String::class)
-                val schema = column("TABLE_SCHEM", String::class)
-                val name = expectColumn("TABLE_NAME", String::class)
-                val type = expectColumn("TABLE_TYPE", String::class)
-                val remarks = column("REMARKS", String::class)
-                name to type
-            }.filter {  (name,type) ->
-                    type == "TABLE"
-            }.map {  (name,type) ->
-//                    println("-> $name ($type)")
-                    name
+        val tableNames = connection.metaData.tables().map {  table ->
+                    table.name
             }
         println("-------------------------")
         println()

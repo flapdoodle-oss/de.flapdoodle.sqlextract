@@ -1,6 +1,8 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.jdbc.query
+import de.flapdoodle.sqlextract.jdbc.table
+import de.flapdoodle.sqlextract.jdbc.tables
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.JDBCType
@@ -20,13 +22,8 @@ class JdbcTableResolver(
 //    }
 
     override fun byName(name: String): Table {
-        val (tableName, remarks) = metaData.query { getTables(null,null,name, arrayOf("TABLE")) }
-                .get {
-                    val tableName = expectColumn("TABLE_NAME", String::class)
-                    val remarks = column("REMARKS", String::class)
-//                    println("table -> $name -> $tableName ($remarks)")
-                    tableName to remarks
-                }
+        val table = metaData.table(name)
+        val tableName = table.name
 
         val columns = metaData.query { getColumns(null, null, tableName, null) }
                 .map {

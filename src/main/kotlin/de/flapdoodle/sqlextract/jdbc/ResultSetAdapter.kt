@@ -22,6 +22,8 @@ class ResultSetAdapter(private val factory: () -> ResultSet) {
     }
 
     fun <T> get(rowMapper: ResultSetRow.() -> T): T {
-        return map(rowMapper).single()
+        val mapped = map(rowMapper)
+        require(mapped.size==1) {"more than one element: $mapped"}
+        return mapped.single()
     }
 }
