@@ -42,10 +42,7 @@ internal class TableFilterTest {
         val matcher = TableFilter.matchNameOrRegex("EXACT_MATCH")
         
         assertThat(matcher)
-            .isEqualTo( TableFilter.Companion.And(
-                    first = TableFilter.Companion.ExactMatch("EXACT_MATCH"),
-                    second = TableFilter.Companion.AnySchema
-            ))
+            .isEqualTo(TableFilter.Companion.ExactMatch("EXACT_MATCH"))
     }
 
     @Test
@@ -53,22 +50,19 @@ internal class TableFilterTest {
         val matcher = TableFilter.matchNameOrRegex("^EXACT_MATCH")
 
         assertThat(matcher)
-                .isEqualTo( TableFilter.Companion.And(
-                        first = TableFilter.Companion.PatternMatch("^EXACT_MATCH"),
-                        second = TableFilter.Companion.AnySchema
-                ))
+                .isEqualTo(TableFilter.Companion.PatternMatch("^EXACT_MATCH"))
     }
 
 
     @Test
     fun matchEveryTableBecauseNothingIsExcluded() {
-        val testee = TableFilter(includes = emptySet(), excludes = emptySet())
+        val testee = tableFilter(includes = emptySet(), excludes = emptySet())
         assertThat(testee.matchingTableName("S.FOO")).isTrue
     }
 
     @Test
     fun matchEveryIncludedTable() {
-        val testee = TableFilter(includes = setOf("FOO","BAR"), excludes = emptySet())
+        val testee = tableFilter(includes = setOf("FOO","BAR"), excludes = emptySet())
         assertThat(testee.matchingTableName("S.FOO")).isTrue
         assertThat(testee.matchingTableName("S.BAR")).isTrue
         assertThat(testee.matchingTableName("S.BAZ")).isFalse
@@ -76,7 +70,7 @@ internal class TableFilterTest {
 
     @Test
     fun dontMatchTableIfExcluded() {
-        val testee = TableFilter(includes = setOf("FOO","BAR"), excludes = setOf("BAR"))
+        val testee = tableFilter(includes = setOf("FOO","BAR"), excludes = setOf("BAR"))
         assertThat(testee.matchingTableName("S.FOO")).isTrue
         assertThat(testee.matchingTableName("S.BAR")).isFalse
         assertThat(testee.matchingTableName("S.BAZ")).isFalse
@@ -84,5 +78,9 @@ internal class TableFilterTest {
 
     private fun table(name: String): Name {
         return Name(name = name, schema = UUID.randomUUID().toString())
+    }
+
+    private fun tableFilter(includes: Set<String> = emptySet(), excludes: Set<String> = emptySet()): TableFilter {
+        return TableFilter(name = "NAME", schema = "SCHEMA", includes = includes, excludes = excludes)
     }
 }

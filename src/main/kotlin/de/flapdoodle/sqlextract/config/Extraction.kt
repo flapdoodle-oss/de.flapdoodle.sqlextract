@@ -14,7 +14,7 @@ data class Extraction(
     val password: String?,
     val dataSets: List<DataSet>,
     val foreignKeys: ForeignKeys,
-    val tableFilter: TableFilter
+    val tableFilter: TableFilterList
 ) {
     companion object {
         fun parse(basePath: Path, source: Attributes.Node): Extraction {
@@ -28,7 +28,8 @@ data class Extraction(
             require(className != null) { "className not set" }
             require(jdbcUrl != null) { "className not set" }
 
-            val tableFilter = TableFilter.parse(source.find("tables", Attributes.Node::class));
+            val tableFilter = TableFilterList.parse(source.find("tables", Attributes.Node::class))
+
             val foreignKeys = ForeignKeys.parse(source.findValues("foreignKeys", List::class))
 
             val dataSetConfigs = source.find("dataset", Attributes.Node::class)

@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.SqlInitExtension
+import de.flapdoodle.sqlextract.jdbc.tables
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -13,9 +14,9 @@ internal class JdbcTableResolverTest {
     @Test
     fun withPK(connection: Connection) {
         val testee = JdbcTableResolver(connection)
-        val withPK = testee.byName(Name.parse("WITH_PK"))
+        val withPK = testee.byName(Name.parse("PUBLIC.WITH_PK"))
 
-        assertThat(withPK.name).isEqualTo("WITH_PK")
+        assertThat(withPK.name).isEqualTo(Name.parse("PUBLIC.WITH_PK"))
 
         assertThat(withPK.columns)
             .containsExactlyInAnyOrder(
@@ -34,9 +35,9 @@ internal class JdbcTableResolverTest {
     @Test
     fun withFK(connection: Connection) {
         val testee = JdbcTableResolver(connection)
-        val withFK = testee.byName(Name.parse("WITH_FK"))
+        val withFK = testee.byName(Name.parse("PUBLIC.WITH_FK"))
 
-        assertThat(withFK.name).isEqualTo("WITH_FK")
+        assertThat(withFK.name).isEqualTo(Name("WITH_FK", "PUBLIC"))
 
         assertThat(withFK.columns)
             .containsExactlyInAnyOrder(

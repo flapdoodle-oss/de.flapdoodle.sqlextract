@@ -35,8 +35,8 @@ data class JdbcTable(
     companion object {
         fun rowMapper(): ResultSetRow.() -> JdbcTable {
             return {
-                val catalog = column("TABLE_CAT", String::class)
-                val schema = expectColumn("TABLE_SCHEM", String::class)
+                val catalog = column(setOf("TABLE_CAT", "TABLE_CATALOG"), String::class)
+                val schema = expectColumn(setOf("TABLE_SCHEMA","TABLE_SCHEM"), String::class)
                 val name = expectColumn("TABLE_NAME", String::class)
                 val type = expectColumn("TABLE_TYPE", String::class)
                 val remarks = column("REMARKS", String::class)

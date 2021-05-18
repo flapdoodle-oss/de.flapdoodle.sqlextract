@@ -6,19 +6,19 @@ import org.junit.jupiter.api.Test
 internal class TablesTest {
 
     private val fooTable = Table(
-        name = Name.parse("foo"), foreignKeys = setOf(
+        name = Name.parse("s.foo"), foreignKeys = setOf(
             ForeignKey("foo", "BAR_ID", "bar", "ID")
         )
     )
 
     private val barTable = Table(
-        name = Name.parse("bar"), foreignKeys = setOf(
+        name = Name.parse("s.bar"), foreignKeys = setOf(
             ForeignKey("bar", "BAZ_ID", "baz", "ID")
         )
     )
 
     private val bazTable = Table(
-        name = Name.parse("baz")
+        name = Name.parse("s.baz")
     )
 
     private val resolver: (name: Name) -> Table = { name ->
@@ -40,15 +40,15 @@ internal class TablesTest {
         )
 
         assertThat(testee.missingTableDefinitions())
-            .containsExactly(Name.parse("baz"))
+            .containsExactly(Name.parse("s.baz"))
     }
 
     @Test
     fun resolveMissingTablesOnAdd() {
-        val testee = Tables.empty().add(listOf<Name>(Name.parse("foo"),Name.parse("bar")), resolver)
+        val testee = Tables.empty().add(listOf<Name>(Name.parse("s.foo"),Name.parse("s.bar")), resolver)
 
-        assertThat(testee.find(Name.parse("foo"))).isNotNull
-        assertThat(testee.find(Name.parse("bar"))).isNotNull
-        assertThat(testee.find(Name.parse("baz"))).isNotNull
+        assertThat(testee.find(Name.parse("s.foo"))).isNotNull
+        assertThat(testee.find(Name.parse("s.bar"))).isNotNull
+        assertThat(testee.find(Name.parse("s.baz"))).isNotNull
     }
 }
