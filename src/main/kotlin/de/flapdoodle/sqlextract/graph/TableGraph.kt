@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.graph
 
+import de.flapdoodle.graph.GraphAsDot
 import de.flapdoodle.graph.Graphs
 import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
@@ -24,6 +25,24 @@ class TableGraph(
             }
         }
         this.graph = wrapper.build()
+    }
+
+    fun asDot(): String {
+        val dotContent = GraphAsDot.builder<TableColumn> { it.asId() }
+            .nodeAttributes { mapOf("label" to it.simpleName()) }
+            .label("tablegraph")
+            .build()
+            .asDot(graph)
+
+//        println("-----------------")
+//        println(dotContent)
+//        println("-----------------")
+//        val loops = Graphs.loopsOf(graph)
+//
+//        loops.forEach {
+//            println("loop: $it")
+//        }
+        return dotContent
     }
 
     companion object {

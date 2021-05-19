@@ -79,6 +79,10 @@ class Extractor {
 //                println("-> "+rs.getString(3))
 //            }
         }
+
+        println("----------------")
+        println(tableGraph.asDot())
+        println("----------------")
     }
 
     private fun addForeignKeys(foreignKeys: List<ForeignKeys>): (Table) -> Table {
