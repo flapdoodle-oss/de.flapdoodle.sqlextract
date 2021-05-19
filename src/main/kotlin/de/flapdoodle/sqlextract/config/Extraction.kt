@@ -13,7 +13,7 @@ data class Extraction(
     val user: String?,
     val password: String?,
     val dataSets: List<DataSet>,
-    val foreignKeys: ForeignKeys,
+    val foreignKeys: List<ForeignKeys>,
     val tableFilter: TableFilterList
 ) {
     companion object {
@@ -30,7 +30,7 @@ data class Extraction(
 
             val tableFilter = TableFilterList.parse(source.find("tables", Attributes.Node::class))
 
-            val foreignKeys = ForeignKeys.parse(source.findValues("foreignKeys", List::class))
+            val foreignKeys = ForeignKeys.parse(source.find("foreignKeys", Attributes.Node::class))
 
             val dataSetConfigs = source.find("dataset", Attributes.Node::class)
 

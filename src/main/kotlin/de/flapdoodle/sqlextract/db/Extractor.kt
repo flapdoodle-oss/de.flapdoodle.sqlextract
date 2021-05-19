@@ -79,9 +79,11 @@ class Extractor {
         }
     }
 
-    private fun addForeignKeys(foreignKeys: ForeignKeys): (Table) -> Table {
+    private fun addForeignKeys(foreignKeys: List<ForeignKeys>): (Table) -> Table {
         return {
-            val keys = foreignKeys.foreignKeys(it.name.name)
+            val keys = foreignKeys.filter { fk -> fk.schema==it.name.schema }
+                .flatMap { fk -> fk.foreignKeys(it.name.name) }
+
             it.withForeignKeys(keys)
         }
     }
