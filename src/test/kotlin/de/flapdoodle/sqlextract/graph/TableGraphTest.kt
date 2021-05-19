@@ -1,10 +1,7 @@
 package de.flapdoodle.sqlextract.graph
 
-import de.flapdoodle.sqlextract.db.Column
-import de.flapdoodle.sqlextract.db.ForeignKey
+import de.flapdoodle.sqlextract.TableBuilder
 import de.flapdoodle.sqlextract.db.Name
-import de.flapdoodle.sqlextract.db.Table
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.sql.JDBCType
 
@@ -14,32 +11,47 @@ internal class TableGraphTest {
 
     @Test
     fun graphForTable() {
-        val first = Table(
-            name = Name("FIRST", schema),
-            columns = setOf(Column("SECOND_ID", JDBCType.INTEGER, false)),
-            foreignKeys = setOf(ForeignKey("FIRST", "SECOND_ID", "SECOND", "ID"))
-        )
+        val root = TableBuilder("ROOT")
+            .column("MAIN_ID", JDBCType.INTEGER)
+            .column("DIRECT_REF_NAME", JDBCType.VARCHAR)
+            .column("ROOT_REF_ID", JDBCType.INTEGER)
+            .foreignKey("MAIN_ID", "MAIN", "ID")
+            .foreignKey("DIRECT_REF_NAME", "DIRECT_REF", "NAME")
+            .foreignKey("ROOT_REF_ID", "ROOT_REF", "ID")
+            .build()
 
-        val second = Table(
-            name = Name("SECOND", schema),
-            columns = setOf(
-                Column("ID", JDBCType.INTEGER, false),
-                Column("THIRD_ID", JDBCType.INTEGER, false)
-            ),
-            foreignKeys = setOf(ForeignKey("SECOND", "THIRD_ID", "THIRD", "ID"))
-        )
+        val root_ref = TableBuilder("ROOT_REF")
+            .column("ID", JDBCType.INTEGER, false)
+            .build()
 
-        val third = Table(
-            name = Name("THIRD", schema),
-            columns = setOf(
-                Column("ID", JDBCType.INTEGER, false),
-            ),
-        )
+        val main = TableBuilder("MAIN")
+            .column("ID", JDBCType.INTEGER)
+            .column("DIRECT_REF_ID", JDBCType.INTEGER)
+            .foreignKey("DIRECT_REF_ID", "DIRECT_REF", "ID")
+            .build()
 
-        val tables = listOf(first,second,third)
+        val direct_ref = TableBuilder("DIRECT_REF")
+            .column("ID", JDBCType.INTEGER, false)
+            .column("NAME", JDBCType.VARCHAR, false)
+            .build()
 
-        val testee = TableGraph(tables)
+        val otherRoot =  TableBuilder("OTHER_ROOT")
+            .column("OTHER_ID", JDBCType.INTEGER)
+            .foreignKey("OTHER_ID", "OTHER", "ID")
+            .build()
+
+        val other =  TableBuilder("OTHER")
+            .column("ID", JDBCType.INTEGER)
+            .build()
+
+        val tables = listOf(root,root_ref,main,direct_ref, otherRoot, other)
+
+        val testee = TableGraph.of(tables)
 
         println(testee.asDot())
+
+        testee.x(Name("MAIN","PUBLIC"))
+
+
     }
 }

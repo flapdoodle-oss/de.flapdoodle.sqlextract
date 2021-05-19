@@ -2,11 +2,11 @@ package de.flapdoodle.sqlextract.graph
 
 import de.flapdoodle.sqlextract.db.Name
 
-sealed class GraphVertex {
+sealed class GraphVertex(open val table: Name) {
     abstract fun asId(): String
     abstract fun simpleName(): String
 
-    data class Table(val table: Name): GraphVertex() {
+    data class Table(override val table: Name): GraphVertex(table) {
         override fun asId(): String {
             return table.schema+"_"+table.name
         }
@@ -16,7 +16,7 @@ sealed class GraphVertex {
         }
     }
 
-    data class TableColumn(val table: Name, val name: String): GraphVertex() {
+    data class TableColumn(override val table: Name, val name: String): GraphVertex(table) {
         override fun asId(): String {
             return table.schema+"_"+table.name+"__"+name
         }

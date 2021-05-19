@@ -47,7 +47,7 @@ class Extractor {
         println("-------------------------")
 
         val tables = Tables.empty().add(includedTables, tableResolver)
-        val tableGraph = TableGraph(tables.all())
+        val tableGraph = TableGraph.of(tables.all())
 
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
