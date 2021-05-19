@@ -35,23 +35,32 @@ internal class TableGraphTest {
             .column("NAME", JDBCType.VARCHAR, false)
             .build()
 
-        val otherRoot =  TableBuilder("OTHER_ROOT")
+        val otherRoot = TableBuilder("OTHER_ROOT")
             .column("OTHER_ID", JDBCType.INTEGER)
             .foreignKey("OTHER_ID", "OTHER", "ID")
             .build()
 
-        val other =  TableBuilder("OTHER")
+        val other = TableBuilder("OTHER")
             .column("ID", JDBCType.INTEGER)
             .build()
 
-        val tables = listOf(root,root_ref,main,direct_ref, otherRoot, other)
+        val tables = listOf(root, root_ref, main, direct_ref, otherRoot, other)
 
         val testee = TableGraph.of(tables)
 
-        println(testee.asDot())
+//        println(testee.asDot())
 
-        testee.x(Name("MAIN","PUBLIC"))
+        val filtered = testee.filter(Name("MAIN", "PUBLIC"))
 
+        println(filtered.asDot())
 
+        testee.referencesTo(Name("MAIN", "PUBLIC"))
+            .forEach { println("$it -->") }
+
+        testee.referencesFrom(Name("MAIN", "PUBLIC"))
+            .forEach { println("--> $it") }
+        
+        testee.referencesFrom(Name("ROOT", "PUBLIC"))
+            .forEach { println("--> $it") }
     }
 }

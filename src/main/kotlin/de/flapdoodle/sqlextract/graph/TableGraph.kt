@@ -15,48 +15,63 @@ class TableGraph(
         return asDot(graph)
     }
 
-    @Deprecated("not usefull")
-    fun graphFor(table: Name): TableGraph {
+    fun referencesTo(table: Name): List<Name> {
         val current = GraphVertex.Table(table)
 
-        val result: DefaultDirectedGraph<GraphVertex, DefaultEdge> = Graphs.filter(graph, Predicate {
-            it == current || Graphs.hasPath(graph, current, it) || Graphs.hasPath(graph, it, current)
-        })
+        val currentColumns = graph.sourcesOf(current)
+        val sourceColumns = currentColumns.flatMap { graph.sourcesOf(it) }
+        val sourceTables = sourceColumns.flatMap { graph.sourcesOf(it) }
 
-        return TableGraph(result)
+        require(sourceTables.all { it is GraphVertex.Table }) { "wrong type: $sourceTables" }
+
+        return sourceTables.map { it as GraphVertex.Table }.map { it.table }
     }
 
-    fun x(table: Name) {
+    fun referencesFrom(table: Name): List<Name> {
+        val current = GraphVertex.Table(table)
+
+        val currentColumns = graph.targetsOf(current)
+        val targetColumns = currentColumns.flatMap { graph.targetsOf(it) }
+        val targetTables = targetColumns.flatMap { graph.targetsOf(it) }
+
+        require(targetTables.all { it is GraphVertex.Table }) { "wrong type: $targetTables" }
+
+        return targetTables.map { it as GraphVertex.Table }.map { it.table }
+    }
+
+    fun filter(table: Name): TableGraph {
         val current = GraphVertex.Table(table)
 
         val allRoots = Graphs.rootsOf(graph).firstOrNull()?.vertices() ?: emptySet()
         val connectedRoots = allRoots.filter {
-            Graphs.hasPath(graph,it,current)
+            Graphs.hasPath(graph, it, current)
         }
-        println("roots")
-        println("---------------")
-        connectedRoots.forEach {
-            println("-> $it")
-        }
-        println("---------------")
+//        println("roots")
+//        println("---------------")
+//        connectedRoots.forEach {
+//            println("-> $it")
+//        }
+//        println("---------------")
 
         val filteredGraph = Graphs.filter(graph, Predicate {
             connectedRoots.contains(it) || connectedRoots.any { root -> Graphs.hasPath(graph, root, it) }
         })
 
-        println(asDot(filteredGraph))
+//        println(asDot(filteredGraph))
+//
+//        val traversedGraph = Graphs.rootsOf(filteredGraph)
+//
+//        println("traverse")
+//        println("---------------")
+//        traversedGraph.forEach {
+//            if (it.loops().isNotEmpty()) {
+//                println("looops!!!")
+//            }
+//            println("-> $it")
+//        }
+//        println("---------------")
 
-        val traversedGraph = Graphs.rootsOf(filteredGraph)
-
-        println("traverse")
-        println("---------------")
-        traversedGraph.forEach {
-            if (it.loops().isNotEmpty()) {
-                println("looops!!!")
-            }
-            println("-> $it")
-        }
-        println("---------------")
+        return TableGraph(filteredGraph)
     }
 
     companion object {
@@ -64,6 +79,7 @@ class TableGraph(
         private fun asDot(graph: DefaultDirectedGraph<GraphVertex, DefaultEdge>): String {
             val dotContent = GraphAsDot.builder<GraphVertex> { it.asId() }
                 .nodeAttributes { mapOf("label" to it.simpleName()) }
+                .edgeAttributes { start, end -> mapOf("label" to start.simpleName() + " - " + end.simpleName()) }
                 .label("tablegraph")
                 .build()
                 .asDot(graph)
@@ -76,7 +92,7 @@ class TableGraph(
             tables.forEach { table ->
                 table.foreignKeys.forEach { foreignKey ->
                     val dstTable = tablesByName[Name(foreignKey.destinationTable, table.name.schema)]
-                    require(dstTable!=null) {"table ${foreignKey.destinationTable} not found"}
+                    require(dstTable != null) { "table ${foreignKey.destinationTable} not found" }
 
                     wrapper.add(table.name, foreignKey.sourceColumn, dstTable.name, foreignKey.destinationColumn)
                 }
@@ -90,8 +106,8 @@ class TableGraph(
 
             fun add(source: Name, sourceColumn: String, dest: Name, destColumn: String) {
                 val srcTable = GraphVertex.Table(source)
-                val srcColumn = GraphVertex.TableColumn(source,sourceColumn)
-                val dstColumn = GraphVertex.TableColumn(dest,destColumn)
+                val srcColumn = GraphVertex.TableColumn(source, sourceColumn)
+                val dstColumn = GraphVertex.TableColumn(dest, destColumn)
                 val dstTable = GraphVertex.Table(dest)
 
                 builder.addVertex(srcTable)
@@ -99,9 +115,9 @@ class TableGraph(
                 builder.addVertex(dstColumn)
                 builder.addVertex(dstTable)
 
-                builder.addEdge(srcTable,srcColumn)
-                builder.addEdge(srcColumn,dstColumn)
-                builder.addEdge(dstColumn,dstTable)
+                builder.addEdge(srcTable, srcColumn)
+                builder.addEdge(srcColumn, dstColumn)
+                builder.addEdge(dstColumn, dstTable)
             }
 
             fun build(): DefaultDirectedGraph<GraphVertex, DefaultEdge> {
