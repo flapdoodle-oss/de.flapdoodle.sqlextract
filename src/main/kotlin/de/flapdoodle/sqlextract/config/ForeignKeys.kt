@@ -25,7 +25,7 @@ data class ForeignKeys(
         }
 
         fun parse(name: String, source: Attributes.Node): ForeignKeys {
-            val foreignKeyList = parse(source.findValues("foreignKeys", List::class))
+            val foreignKeyList = parse(source.findValues("keys", List::class))
             val schema = source.values("schema", String::class).singleOrNull()
 
             require(schema != null) { "schema not defined" }
