@@ -4,6 +4,10 @@ data class Name(
         val name: String,
         val schema: String,
 ) {
+    fun asSQL(): String {
+        return "$schema.$name"
+    }
+
     companion object {
         fun parse(name: String): Name {
             val idx = name.indexOf('.')

@@ -24,7 +24,7 @@ class Extractor {
         println("All Tables")
         println("-------------------------")
         val tableNames = connection.metaData.tables().map {  table ->
-            println("--> ${table.name}")
+//            println("--> ${table.name}")
                     table.name
             }
         println("-------------------------")
@@ -34,9 +34,15 @@ class Extractor {
 
         println("Tables")
         println("-------------------------")
-        includedTables.forEach {
-            println("-> $it")
+        includedTables.groupBy { it.schema }.forEach { schema, list ->
+            println("Schema: $schema")
+            list.forEach {
+                println("-> ${it.name}")
+            }
         }
+//        includedTables.forEach {
+//            println("-> $it")
+//        }
         println("-------------------------")
 
         val tables = Tables.empty().add(includedTables, tableResolver)
@@ -50,7 +56,7 @@ class Extractor {
 
                 val table = tables.get(dataSet.table)
 
-                val sqlQuery = "select * from ${dataSet.table} where ${dataSet.where}"
+                val sqlQuery = "select * from ${dataSet.table.asSQL()} where ${dataSet.where}"
 
                 println("query: $sqlQuery")
                 con.query { prepareStatement(sqlQuery).executeQuery() }
