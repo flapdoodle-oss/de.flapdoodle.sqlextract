@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
+import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.Connections
 import de.flapdoodle.sqlextract.jdbc.query
 import de.flapdoodle.sqlextract.jdbc.table
@@ -46,6 +47,7 @@ class Extractor {
         println("-------------------------")
 
         val tables = Tables.empty().add(includedTables, tableResolver)
+        val tableGraph = TableGraph(tables.all())
 
         connection.use { con ->
             config.dataSets.forEach { dataSet ->
