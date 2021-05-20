@@ -32,40 +32,43 @@ class DataSetCollector(
         query: String,
         parameters: Map<Int, Any> = emptyMap()
     ) {
-        val tableConstraint = constraints.find(table.name)
+        if (!rows.skipQuery(query, parameters)) {
 
-        println("---------------------------------------------")
-        println("collect $query with $parameters ($tableConstraint)")
+            val tableConstraint = constraints.find(table.name)
 
-        val newRows = connection.query {
-            val statement = prepareStatement(query)
-            parameters.forEach { index, value ->
-                statement.setObject(index, value)
-            }
-            if (tableConstraint?.limit != null) {
-                statement.fetchSize = tableConstraint.limit.toInt()
-            }
-            statement.executeQuery().andCloseAfterUse(statement)
-        }
-            .map {
-                TableRow.of(table, table.columns.map { column ->
-                    column.name to this.column(column.name, Object::class)
-                }.toMap())
-            }
+            println("---------------------------------------------")
+            println("collect $query with $parameters ($tableConstraint)")
 
-        val missingRows = rows.missingRows(newRows)
-        rows.add(newRows)
-
-        if (missingRows.isNotEmpty()) {
-            val tablesPointingFrom = filteredGraph.referencesTo(table.name)
-            tablesPointingFrom.forEach { from ->
-                val fromTable = tables.get(from)
-                collect(fromTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
+            val newRows = connection.query {
+                val statement = prepareStatement(query)
+                parameters.forEach { index, value ->
+                    statement.setObject(index, value)
+                }
+                if (tableConstraint?.limit != null) {
+                    statement.fetchSize = tableConstraint.limit.toInt()
+                }
+                statement.executeQuery().andCloseAfterUse(statement)
             }
-            val tablesPointingTo = filteredGraph.referencesFrom(table.name)
-            tablesPointingTo.forEach { to ->
-                val toTable = tables.get(to)
-                collect(toTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(row, toTable) }
+                    .map {
+                        TableRow.of(table, table.columns.map { column ->
+                            column.name to this.column(column.name, Object::class)
+                        }.toMap())
+                    }
+
+            val missingRows = rows.missingRows(newRows)
+            rows.add(newRows)
+
+            if (missingRows.isNotEmpty()) {
+                val tablesPointingFrom = filteredGraph.referencesTo(table.name)
+                tablesPointingFrom.forEach { from ->
+                    val fromTable = tables.get(from)
+                    collect(fromTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
+                }
+                val tablesPointingTo = filteredGraph.referencesFrom(table.name)
+                tablesPointingTo.forEach { to ->
+                    val toTable = tables.get(to)
+                    collect(toTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(row, toTable) }
+                }
             }
         }
     }
@@ -147,6 +150,7 @@ class DataSetCollector(
 
     class Rows {
         private var tableRowsMap = emptyMap<Name, TableRows>()
+        private var executedQueries = emptySet<QueryKey>()
 
         fun add(rows: List<TableRow>) {
             rows.forEach { row ->
@@ -157,12 +161,12 @@ class DataSetCollector(
 
         private fun entryFor(table: Name): TableRows {
             val ret = tableRowsMap[table]
-            if (ret == null) {
+            return if (ret == null) {
                 val rows = TableRows(table)
                 tableRowsMap = tableRowsMap + (table to rows)
-                return rows
+                rows
             } else {
-                return ret
+                ret
             }
         }
 
@@ -171,7 +175,18 @@ class DataSetCollector(
                 !entryFor(row.table.name).contains(row)
             }
         }
+
+        fun skipQuery(query: String, parameters: Map<Int, Any>): Boolean {
+            val key = QueryKey(query,parameters)
+            return if (!executedQueries.contains(key)) {
+                executedQueries = executedQueries + key
+                false
+            } else
+                true
+        }
     }
+
+    data class QueryKey(val query: String, val parameters: Map<Int, Any>)
 
     class TableRows(val table: Name) {
         private var rowMap = emptyMap<RowKey, TableRow>()
