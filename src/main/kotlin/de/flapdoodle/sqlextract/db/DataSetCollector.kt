@@ -121,7 +121,7 @@ class DataSetCollector(
 
         fun missingRows(rows: List<TableRow>): List<TableRow> {
             return rows.filter { row ->
-                entryFor(row.table.name).contains(row)
+                !entryFor(row.table.name).contains(row)
             }
         }
     }
