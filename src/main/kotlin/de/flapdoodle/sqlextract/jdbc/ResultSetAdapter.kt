@@ -2,7 +2,9 @@ package de.flapdoodle.sqlextract.jdbc
 
 import java.sql.ResultSet
 
-class ResultSetAdapter(private val factory: () -> ResultSet) {
+class ResultSetAdapter(
+    private val factory: () -> ResultSet
+) {
 
     fun <T> map(rowMapper: ResultSetRow.() -> T): List<T> {
         val resultSet = factory()

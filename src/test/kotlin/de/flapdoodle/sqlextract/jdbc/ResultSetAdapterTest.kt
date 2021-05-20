@@ -16,7 +16,8 @@ internal class ResultSetAdapterTest {
     @Test
     fun readSample(connection: Connection) {
         val names = connection.query {
-            prepareStatement("select * from SAMPLE").executeQuery()
+            val statement = prepareStatement("select * from SAMPLE")
+            statement.executeQuery().andCloseAfterUse(statement)
         }.map {
             column("NAME", String::class)
         }

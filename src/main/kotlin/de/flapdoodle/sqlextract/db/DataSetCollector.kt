@@ -3,8 +3,10 @@ package de.flapdoodle.sqlextract.db
 import de.flapdoodle.sqlextract.config.Constraint
 import de.flapdoodle.sqlextract.config.DataSet
 import de.flapdoodle.sqlextract.graph.TableGraph
+import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
 import java.sql.Connection
+import java.sql.PreparedStatement
 
 class DataSetCollector(
     val connection: Connection,
@@ -43,7 +45,7 @@ class DataSetCollector(
             if (tableConstraint?.limit != null) {
                 statement.fetchSize = tableConstraint.limit.toInt()
             }
-            statement.executeQuery()
+            statement.executeQuery().andCloseAfterUse(statement)
         }
             .map {
                 TableRow.of(table, table.columns.map { column ->
