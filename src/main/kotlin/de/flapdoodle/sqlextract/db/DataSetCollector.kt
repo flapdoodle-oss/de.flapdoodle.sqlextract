@@ -1,5 +1,7 @@
 package de.flapdoodle.sqlextract.db
 
+import de.flapdoodle.sqlextract.config.Constraint
+import de.flapdoodle.sqlextract.config.DataSet
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.query
 import java.sql.Connection
@@ -10,22 +12,36 @@ class DataSetCollector(
 ) {
     private val tableGraph = TableGraph.of(tables.all())
 
-    fun collect(tableName: Name, query: String) {
-        val filteredGraph = tableGraph.filter(tableName)
-        val table = tables.get(tableName)
+    fun collect(dataSet: DataSet) {
+        val filteredGraph = tableGraph.filter(dataSet.table)
+        val table = tables.get(dataSet.table)
         val rows = Rows()
+        val constraints = TableConstraints(dataSet.constraints)
 
-        collect(table, filteredGraph, rows, query)
+        val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
+        collect(table, filteredGraph, rows, constraints, sqlQuery)
     }
 
-    private fun collect(table: Table, filteredGraph: TableGraph, rows: Rows, query: String, parameters: Map<Int, Any> = emptyMap()) {
+    private fun collect(
+        table: Table,
+        filteredGraph: TableGraph,
+        rows: Rows,
+        constraints: TableConstraints,
+        query: String,
+        parameters: Map<Int, Any> = emptyMap()
+    ) {
+        val tableConstraint = constraints.find(table.name)
+
         println("---------------------------------------------")
-        println("collect $query with $parameters")
+        println("collect $query with $parameters ($tableConstraint)")
 
         val newRows = connection.query {
             val statement = prepareStatement(query)
             parameters.forEach { index, value ->
                 statement.setObject(index, value)
+            }
+            if (tableConstraint?.limit != null) {
+                statement.fetchSize = tableConstraint.limit.toInt()
             }
             statement.executeQuery()
         }
@@ -42,12 +58,12 @@ class DataSetCollector(
             val tablesPointingFrom = filteredGraph.referencesTo(table.name)
             tablesPointingFrom.forEach { from ->
                 val fromTable = tables.get(from)
-                collect(fromTable, filteredGraph, rows, missingRows) { row -> constraintsOf(fromTable, row) }
+                collect(fromTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
             }
             val tablesPointingTo = filteredGraph.referencesFrom(table.name)
-            tablesPointingTo.forEach {  to ->
+            tablesPointingTo.forEach { to ->
                 val toTable = tables.get(to)
-                collect(toTable, filteredGraph, rows, missingRows) { row -> constraintsOf(row, toTable) }
+                collect(toTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(row, toTable) }
             }
         }
     }
@@ -56,29 +72,51 @@ class DataSetCollector(
         table: Table,
         filteredGraph: TableGraph,
         rows: Rows,
+        tableConstraints: TableConstraints,
         newRows: List<TableRow>,
         constraintsFactory: (TableRow) -> List<Pair<String, Any?>>
     ) {
+        val tableConstraint = tableConstraints.find(table.name)
+
         newRows.forEach { row ->
             val constraints = constraintsFactory(row)
-            val constraintsSql = constraints.map { it.first }.joinToString(separator = " and ")
+            val constraintsSql = constraints.map { it.first } + (tableConstraint?.where ?: emptyList())
+            val orderBy = tableConstraint?.orderBy ?: emptyList()
 
-            val query = "select * from ${table.name.asSQL()} where $constraintsSql"
+            val query = selectQuery(table.name, constraintsSql, orderBy)
             val parameters = constraints
-                .filter { it.second!=null }
-                .mapIndexed{ index, pair -> index+1 to pair.second !! }
+                .filter { it.second != null }
+                .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, filteredGraph,rows, query, parameters)
+            collect(table, filteredGraph, rows, tableConstraints, query, parameters)
         }
+    }
+
+    private fun selectQuery(
+        table: Name,
+        where: List<String> = emptyList(),
+        orderBy: List<String> = emptyList()
+    ): String {
+        val whereSQL = if (where.isNotEmpty())
+            " where ${where.joinToString(" and ")}"
+        else
+            ""
+
+        val orderBySQL = if (orderBy.isNotEmpty())
+            " order by ${orderBy.joinToString(separator = ", ")}"
+        else
+            ""
+
+        return "select * from ${table.asSQL()}$whereSQL$orderBySQL"
     }
 
     private fun constraintsOf(from: Table, to: TableRow): List<Pair<String, Any?>> {
         val fk = from.foreignKeys.filter { it.destinationTable == to.table.name.name }
-        require(fk.isNotEmpty()) {"expected foreign keys to ${to.table} from ${from.name}"}
+        require(fk.isNotEmpty()) { "expected foreign keys to ${to.table} from ${from.name}" }
         return fk.map {
             val value = to.values[it.destinationColumn]
-            if (value!=null) {
+            if (value != null) {
                 "${it.sourceColumn} = ?" to value
             } else {
                 "${it.sourceColumn} is null" to null
@@ -88,16 +126,23 @@ class DataSetCollector(
 
     private fun constraintsOf(from: TableRow, to: Table): List<Pair<String, Any?>> {
         val fk = from.table.foreignKeys.filter { it.destinationTable == to.name.name }
-        require(fk.isNotEmpty()) {"expected foreign keys to ${from.table} from ${to.name}"}
+        require(fk.isNotEmpty()) { "expected foreign keys to ${from.table} from ${to.name}" }
         return fk.map {
             val value = from.values[it.sourceColumn]
-            if (value!=null) {
+            if (value != null) {
                 "${it.destinationColumn} = ?" to value
             } else {
                 "${it.destinationColumn} is null" to null
             }
         }
     }
+
+    class TableConstraints(val constraints: List<Constraint>) {
+        private val byTable = constraints.associateBy { it.table }
+
+        fun find(table: Name) = byTable[table]
+    }
+
     class Rows {
         private var tableRowsMap = emptyMap<Name, TableRows>()
 

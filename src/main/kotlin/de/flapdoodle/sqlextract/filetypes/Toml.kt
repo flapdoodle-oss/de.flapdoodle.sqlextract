@@ -23,6 +23,8 @@ object Toml {
     }
 
     private fun <T: Any> asArray(value: List<T?>): Attributes.Values<T> {
-        return Attributes.Values(value)
+        return Attributes.Values(value.map {
+            if (it is WRAPPED) (asTree(it) as T) else it
+        })
     }
 }

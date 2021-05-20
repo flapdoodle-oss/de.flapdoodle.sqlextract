@@ -1,0 +1,7 @@
+table="PUBLIC.A"
+where="ID = '123'"
+limit=10
+orderBy="ID"
+constraints=[
+    {table="PUBLIC.B",where="NAME is not null",limit=20,orderBy="NAME desc"}
+]

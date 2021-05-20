@@ -1,0 +1,14 @@
+[root]
+
+[root.sub]
+    key = "value"
+    keys = ["day","month","year","path"]
+
+nested_array_table = [
+    [ {value = 1}, {value = 0} ],
+    [ {value = 0}, {value = 1, comment = "bottom right diagonal element"} ] ]
+
+array_table = [
+    {foo = 1, bar = ["baz"]},
+    {foo = 2, bar = ["bar", "baz"]}
+]

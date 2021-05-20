@@ -4,27 +4,36 @@ import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.filetypes.Attributes
 
 data class DataSet(
-        val name: String,
-        val table: Name,
-        val where: String,
-        val include: List<String>
+    val name: String,
+    val table: Name,
+    val where: List<String>,
+    val limit: Long?,
+    val orderBy: List<String>,
+    val constraints: List<Constraint>
 ) {
 
     companion object {
         fun parse(name: String, source: Attributes.Node): DataSet {
             val table = source.values("table", String::class).singleOrNull()
-            val where = source.values("where", String::class).singleOrNull()
-            val include = source.findValues("include", String::class)
+            val where = source.values("where", String::class)
+            val limit = source.findValues("limit", Long::class)?.singleOrNull()
+            val orderBy = source.findValues("orderBy", String::class)
 
             require(table != null) { "table is not set" }
-            require(where != null) { "where is not set" }
-            require(table.indexOf('.') != -1) { "table schema unknown: $table" }
+            require(where.isNotEmpty()) { "where is not set: $where" }
 
-            val idx = table.indexOf('.')
-            val tableName=table.substring(idx+1)
-            val schema = table.substring(0,idx)
+            val constraints = source.findValues("constraints", Attributes.Node::class)?.map {
+                Constraint.parse(it)
+            }
 
-            return DataSet(name, Name(tableName, schema), where, include ?: emptyList())
+            return DataSet(
+                name = name,
+                table = Name.parse(table),
+                where = where,
+                limit = limit,
+                orderBy = orderBy ?: emptyList(),
+                constraints = constraints ?: emptyList()
+            )
         }
     }
 }

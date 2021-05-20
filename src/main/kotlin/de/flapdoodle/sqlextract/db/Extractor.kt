@@ -58,7 +58,7 @@ class Extractor {
 
             config.dataSets.forEach { dataSet ->
                 val sqlQuery = "select * from ${dataSet.table.asSQL()} where ${dataSet.where}"
-                dataSetCollector.collect(dataSet.table, sqlQuery)
+                dataSetCollector.collect(dataSet)
             }
 
 //            config.dataSets.forEach { dataSet ->
