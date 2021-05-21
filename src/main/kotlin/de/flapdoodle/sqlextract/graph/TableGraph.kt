@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.graph
 
 import de.flapdoodle.graph.GraphAsDot
 import de.flapdoodle.graph.Graphs
+import de.flapdoodle.graph.Loop
 import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import org.jgrapht.graph.DefaultDirectedGraph
@@ -73,6 +74,19 @@ class TableGraph(
 
         return TableGraph(filteredGraph)
     }
+
+    fun tablesInInsertOrder(): List<Name> {
+        val loops = Graphs.loopsOf(graph)
+        require(loops.isEmpty()) {"loops not supported: $loops"}
+
+        val startingFromLeafs = Graphs.leavesOf(graph)
+        return startingFromLeafs.flatMap { verticesAndEdges ->
+            require(verticesAndEdges.loops().isEmpty()) {"again, loops not supported: $verticesAndEdges"}
+
+            verticesAndEdges.vertices().filterIsInstance<GraphVertex.Table>().map { it.table }
+        }
+    }
+
 
     companion object {
 

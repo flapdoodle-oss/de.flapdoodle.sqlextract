@@ -1,38 +1,43 @@
-package de.flapdoodle.sqlextract.db
+package de.flapdoodle.sqlextract.data
 
 import de.flapdoodle.sqlextract.config.Constraint
 import de.flapdoodle.sqlextract.config.DataSet
+import de.flapdoodle.sqlextract.db.Name
+import de.flapdoodle.sqlextract.db.Table
+import de.flapdoodle.sqlextract.db.Tables
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
 import java.sql.Connection
-import java.sql.PreparedStatement
 
 class DataSetCollector(
     val connection: Connection,
     val tables: Tables
 ) {
     private val tableGraph = TableGraph.of(tables.all())
+    private val rowCollector = RowCollector()
 
     fun collect(dataSet: DataSet) {
         val filteredGraph = tableGraph.filter(dataSet.table)
         val table = tables.get(dataSet.table)
-        val rows = Rows()
         val constraints = TableConstraints(dataSet.constraints)
 
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
-        collect(table, filteredGraph, rows, constraints, sqlQuery)
+        collect(table, filteredGraph, constraints, sqlQuery)
+    }
+
+    fun snapshot(): Snapshot {
+        return Snapshot(tableGraph, rowCollector.rowMap())
     }
 
     private fun collect(
         table: Table,
         filteredGraph: TableGraph,
-        rows: Rows,
         constraints: TableConstraints,
         query: String,
         parameters: Map<Int, Any> = emptyMap()
     ) {
-        if (!rows.skipQuery(query, parameters)) {
+        if (!rowCollector.skipQuery(query, parameters)) {
 
             val tableConstraint = constraints.find(table.name)
 
@@ -49,25 +54,25 @@ class DataSetCollector(
                 }
                 statement.executeQuery().andCloseAfterUse(statement)
             }
-                    .map {
-                        TableRow.of(table, table.columns.map { column ->
-                            column.name to this.column(column.name, Object::class)
-                        }.toMap())
-                    }
+                .map {
+                    TableRow.of(table, table.columns.map { column ->
+                        column.name to this.column(column.name, Object::class)
+                    }.toMap())
+                }
 
-            val missingRows = rows.missingRows(newRows)
-            rows.add(newRows)
+            val missingRows = rowCollector.missingRows(newRows)
+            rowCollector.add(newRows)
 
             if (missingRows.isNotEmpty()) {
                 val tablesPointingFrom = filteredGraph.referencesTo(table.name)
                 tablesPointingFrom.forEach { from ->
                     val fromTable = tables.get(from)
-                    collect(fromTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
+                    collect(fromTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
                 }
                 val tablesPointingTo = filteredGraph.referencesFrom(table.name)
                 tablesPointingTo.forEach { to ->
                     val toTable = tables.get(to)
-                    collect(toTable, filteredGraph, rows, constraints, missingRows) { row -> constraintsOf(row, toTable) }
+                    collect(toTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(row, toTable) }
                 }
             }
         }
@@ -76,7 +81,6 @@ class DataSetCollector(
     private fun collect(
         table: Table,
         filteredGraph: TableGraph,
-        rows: Rows,
         tableConstraints: TableConstraints,
         newRows: List<TableRow>,
         constraintsFactory: (TableRow) -> List<Pair<String, Any?>>
@@ -94,7 +98,7 @@ class DataSetCollector(
                 .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, filteredGraph, rows, tableConstraints, query, parameters)
+            collect(table, filteredGraph, tableConstraints, query, parameters)
         }
     }
 
@@ -142,15 +146,24 @@ class DataSetCollector(
         }
     }
 
-    class TableConstraints(val constraints: List<Constraint>) {
+    private class TableConstraints(constraints: List<Constraint>) {
         private val byTable = constraints.associateBy { it.table }
 
         fun find(table: Name) = byTable[table]
     }
 
-    class Rows {
+    private class RowCollector {
         private var tableRowsMap = emptyMap<Name, TableRows>()
         private var executedQueries = emptySet<QueryKey>()
+
+        fun rowMap(): Map<Table, List<Snapshot.Row>> {
+            return tableRowsMap.entries.flatMap {
+                it.value.rows()
+            }.groupBy { it.table }
+                .mapValues {
+                    it.value.map { row -> Snapshot.Row(row.values) }
+                }
+        }
 
         fun add(rows: List<TableRow>) {
             rows.forEach { row ->
@@ -177,18 +190,19 @@ class DataSetCollector(
         }
 
         fun skipQuery(query: String, parameters: Map<Int, Any>): Boolean {
-            val key = QueryKey(query,parameters)
+            val key = QueryKey(query, parameters)
             return if (!executedQueries.contains(key)) {
                 executedQueries = executedQueries + key
                 false
             } else
                 true
         }
+
     }
 
-    data class QueryKey(val query: String, val parameters: Map<Int, Any>)
+    private data class QueryKey(val query: String, val parameters: Map<Int, Any>)
 
-    class TableRows(val table: Name) {
+    private class TableRows(val table: Name) {
         private var rowMap = emptyMap<RowKey, TableRow>()
 
         fun add(row: TableRow) {
@@ -201,9 +215,11 @@ class DataSetCollector(
         fun contains(row: TableRow): Boolean {
             return rowMap.containsKey(row.key)
         }
+
+        fun rows() = rowMap.values
     }
 
-    data class TableRow(val table: Table, val key: RowKey, val values: Map<String, Any?>) {
+    private data class TableRow(val table: Table, val key: RowKey, val values: Map<String, Any?>) {
 
         companion object {
             fun of(table: Table, values: Map<String, Any?>): TableRow {
@@ -222,5 +238,5 @@ class DataSetCollector(
         }
     }
 
-    data class RowKey(val key: Map<String, Any?>)
+    private data class RowKey(val key: Map<String, Any?>)
 }

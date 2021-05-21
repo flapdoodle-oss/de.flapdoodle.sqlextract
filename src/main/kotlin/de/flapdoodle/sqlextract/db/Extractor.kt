@@ -2,9 +2,9 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
+import de.flapdoodle.sqlextract.data.DataSetCollector
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.Connections
-import de.flapdoodle.sqlextract.jdbc.query
 import de.flapdoodle.sqlextract.jdbc.tables
 
 
@@ -93,6 +93,11 @@ class Extractor {
 //            }
             println("----------------")
             println(tableGraph.asDot())
+            println("----------------")
+
+            val dump = dataSetCollector.snapshot().insertSQL()
+            println("----------------")
+            println(dump)
             println("----------------")
         }
     }
