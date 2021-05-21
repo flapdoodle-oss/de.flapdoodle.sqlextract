@@ -77,11 +77,21 @@ class TableGraph(
 
     fun tablesInInsertOrder(): List<Name> {
         val loops = Graphs.loopsOf(graph)
-        require(loops.isEmpty()) {"loops not supported: $loops"}
+//        require(loops.isEmpty()) {"loops not supported: $loops"}
 
         val startingFromLeafs = Graphs.leavesOf(graph)
         return startingFromLeafs.flatMap { verticesAndEdges ->
-            require(verticesAndEdges.loops().isEmpty()) {"again, loops not supported: $verticesAndEdges"}
+            if (verticesAndEdges.loops().isNotEmpty()) {
+                println("---------------------------------")
+                println("warning: loops not implemented now")
+                verticesAndEdges.loops().forEach { loop ->
+                    println("parts: ${loop.vertexSet()}")
+                    loop.edges().forEach { edge ->
+                        println("${edge.start()} -> ${edge.end()}")
+                    }
+                }
+                println("---------------------------------")
+            }
 
             verticesAndEdges.vertices().filterIsInstance<GraphVertex.Table>().map { it.table }
         }

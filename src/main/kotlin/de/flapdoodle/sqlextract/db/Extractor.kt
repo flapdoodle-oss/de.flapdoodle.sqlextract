@@ -97,7 +97,10 @@ class Extractor {
 
             val dump = dataSetCollector.snapshot().insertSQL()
             println("----------------")
-            println(dump)
+            dump.forEach {
+                println(it)
+                println("\n\n")
+            }
             println("----------------")
         }
     }

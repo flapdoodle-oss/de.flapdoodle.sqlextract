@@ -14,6 +14,10 @@ sealed class GraphVertex(open val table: Name) {
         override fun simpleName(): String {
             return table.schema+"."+table.name
         }
+
+        override fun toString(): String {
+            return table.asSQL()
+        }
     }
 
     data class TableColumn(override val table: Name, val name: String): GraphVertex(table) {
@@ -23,6 +27,10 @@ sealed class GraphVertex(open val table: Name) {
 
         override fun simpleName(): String {
             return name
+        }
+
+        override fun toString(): String {
+            return "${table.asSQL()}:$name"
         }
     }
 }

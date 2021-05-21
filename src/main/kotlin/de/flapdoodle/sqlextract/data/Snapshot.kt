@@ -12,9 +12,9 @@ data class Snapshot(
 
     data class Row(val values: Map<String, Any?>)
 
-    fun insertSQL() {
+    fun insertSQL(): List<String> {
         val tablesInInsertOrder = tableGraph.tablesInInsertOrder()
-        tablesInInsertOrder.flatMap {
+        return tablesInInsertOrder.flatMap {
             val table = tableByName[it]
             val rows = rowsByTableName[it]
             // no data
@@ -40,7 +40,6 @@ data class Snapshot(
                     asSql(value)
                 }.joinToString(separator = ", ") + ")"
             }.joinToString(",\n"))
-            .append("\n\n")
 
         return listOf(stringBuilder.toString())
     }
