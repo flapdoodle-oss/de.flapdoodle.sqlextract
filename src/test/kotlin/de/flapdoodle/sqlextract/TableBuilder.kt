@@ -25,7 +25,7 @@ class TableBuilder(val name: String, val schema: String = "PUBLIC") {
         destinationTable: String,
         destinationColumn: String
     ): TableBuilder {
-        foreignKeys = foreignKeys + ForeignKey(name, sourceColumn, destinationTable, destinationColumn)
+        foreignKeys = foreignKeys + ForeignKey(Name(name, schema), sourceColumn, Name(destinationTable, schema), destinationColumn)
         return this
     }
 

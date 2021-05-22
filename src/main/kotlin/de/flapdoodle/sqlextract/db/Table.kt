@@ -7,7 +7,7 @@ data class Table(
         val foreignKeys: Set<ForeignKey> = emptySet()
 ) {
     init {
-        require(foreignKeys.all { it.sourceTable == name.name }) { "invalid foreignKey: $this" }
+        require(foreignKeys.all { it.sourceTable == name }) { "invalid foreignKey: $this" }
     }
 
     fun withForeignKeys(keys: List<ForeignKey>): Table {
@@ -16,10 +16,7 @@ data class Table(
 
     fun destinationTables(): Set<Name> {
         return foreignKeys.map {
-            Name(
-                    name = it.destinationTable,
-                    schema = name.schema
-            )
+            it.destinationTable
         }.toSet()
     }
 }

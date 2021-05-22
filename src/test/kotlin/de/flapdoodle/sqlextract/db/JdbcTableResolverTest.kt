@@ -52,7 +52,31 @@ internal class JdbcTableResolverTest {
 
         assertThat(withFK.foreignKeys)
             .containsExactlyInAnyOrder(
-                ForeignKey("WITH_FK","REF","WITH_PK","ID")
+                ForeignKey(Name("WITH_FK", "PUBLIC"),"REF",Name("WITH_PK","PUBLIC"),"ID")
+            )
+    }
+
+    @Test
+    fun otherSchemaWithFK(connection: Connection) {
+        val testee = JdbcTableResolver(connection)
+        val withFK = testee.byName(Name.parse("SECOND.WITH_FK"))
+
+        assertThat(withFK.name).isEqualTo(Name("WITH_FK", "SECOND"))
+
+        assertThat(withFK.columns)
+            .containsExactlyInAnyOrder(
+                Column("ID", JDBCType.DECIMAL, false),
+                Column("NAME", JDBCType.VARCHAR, false),
+                Column("REF", JDBCType.DECIMAL, true)
+            )
+
+        assertThat(withFK.primaryKeys)
+            .allMatch { it.columnName == "ID" }
+            .size().isEqualTo(1)
+
+        assertThat(withFK.foreignKeys)
+            .containsExactlyInAnyOrder(
+                ForeignKey(Name("WITH_FK","SECOND"),"REF",Name("WITH_PK","PUBLIC"),"ID")
             )
     }
 }

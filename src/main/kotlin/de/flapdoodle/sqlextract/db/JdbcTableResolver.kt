@@ -50,6 +50,8 @@ class JdbcTableResolver(
 
         val foreignKeys = metaData.query { getImportedKeys(null, table.name.schema, table.name.name)  }
             .map {
+                val pkSchemaName = expectColumn("PKTABLE_SCHEMA", String::class)
+                val fkSchemaName = expectColumn("FKTABLE_SCHEMA", String::class)
                 val pkTableName = expectColumn("PKTABLE_NAME", String::class)
                 val fkTableName = expectColumn("FKTABLE_NAME", String::class)
                 val pkColumnName = expectColumn("PKCOLUMN_NAME", String::class)
@@ -57,9 +59,9 @@ class JdbcTableResolver(
 //                println("FK -> $pkTableName:$pkColumnName <- $fkTableName:$fkColumnName")
 
                 ForeignKey(
-                    sourceTable = fkTableName,
+                    sourceTable = Name(fkTableName, fkSchemaName),
                     sourceColumn = fkColumnName,
-                    destinationTable = pkTableName,
+                    destinationTable = Name(pkTableName, pkSchemaName),
                     destinationColumn = pkColumnName
                 )
             }.toSet()

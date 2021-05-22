@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.config
 
 import de.flapdoodle.sqlextract.db.ForeignKey
+import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.filetypes.Attributes
 
 data class ForeignKeys(
@@ -9,7 +10,7 @@ data class ForeignKeys(
     val list: List<ForeignKey>
 ) {
 
-    fun foreignKeys(tableName: String): List<ForeignKey> {
+    fun foreignKeys(tableName: Name): List<ForeignKey> {
         return list.filter {
             it.sourceTable == tableName
         }
@@ -62,10 +63,10 @@ data class ForeignKeys(
             )
         }
 
-        private fun tableAndColumn(value: String): Pair<String, String> {
-            val idx = value.indexOf('.')
-            require(idx != -1) { "wrong format: $value != <TABLE.COLUMN>" }
-            return value.substring(0, idx) to value.substring(idx + 1)
+        private fun tableAndColumn(value: String): Pair<Name, String> {
+            val idx = value.indexOf(':')
+            require(idx != -1) { "wrong format: $value != <SCHEMA.TABLE:COLUMN>" }
+            return Name.parse(value.substring(0, idx)) to value.substring(idx + 1)
         }
     }
 }

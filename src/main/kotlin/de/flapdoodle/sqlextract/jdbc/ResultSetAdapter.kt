@@ -8,6 +8,9 @@ class ResultSetAdapter(
 
     fun <T> map(rowMapper: ResultSetRow.() -> T): List<T> {
         val resultSet = factory()
+//        (1..resultSet.metaData.columnCount).forEach {
+//            println("col[$it] -> ${resultSet.metaData.getColumnName(it)}")
+//        }
         resultSet.use {
             var list = emptyList<T>()
             while (resultSet.next()) {

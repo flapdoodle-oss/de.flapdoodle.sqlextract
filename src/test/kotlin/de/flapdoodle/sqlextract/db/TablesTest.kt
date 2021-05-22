@@ -7,13 +7,13 @@ internal class TablesTest {
 
     private val fooTable = Table(
         name = Name.parse("s.foo"), foreignKeys = setOf(
-            ForeignKey("foo", "BAR_ID", "bar", "ID")
+            ForeignKey(Name("foo","s"), "BAR_ID", Name("bar","s"), "ID")
         )
     )
 
     private val barTable = Table(
         name = Name.parse("s.bar"), foreignKeys = setOf(
-            ForeignKey("bar", "BAZ_ID", "baz", "ID")
+            ForeignKey(Name("bar","s"), "BAZ_ID", Name("baz","s"), "ID")
         )
     )
 

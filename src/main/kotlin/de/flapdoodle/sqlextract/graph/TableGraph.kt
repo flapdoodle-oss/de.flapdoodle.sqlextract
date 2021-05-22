@@ -115,7 +115,7 @@ class TableGraph(
             val wrapper = Wrapper()
             tables.forEach { table ->
                 table.foreignKeys.forEach { foreignKey ->
-                    val dstTable = tablesByName[Name(foreignKey.destinationTable, table.name.schema)]
+                    val dstTable = tablesByName[foreignKey.destinationTable]
                     require(dstTable != null) { "table ${foreignKey.destinationTable} not found" }
 
                     wrapper.add(table.name, foreignKey.sourceColumn, dstTable.name, foreignKey.destinationColumn)
