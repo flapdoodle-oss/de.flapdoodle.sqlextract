@@ -4,7 +4,7 @@ import de.flapdoodle.sqlextract.config.Constraint
 import de.flapdoodle.sqlextract.config.DataSet
 import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
-import de.flapdoodle.sqlextract.db.Tables
+import de.flapdoodle.sqlextract.db.TableRepository
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
@@ -12,14 +12,14 @@ import java.sql.Connection
 
 class DataSetCollector(
     val connection: Connection,
-    val tables: Tables
+    val tableRepository: TableRepository
 ) {
-    private val tableGraph = TableGraph.of(tables.all())
+    private val tableGraph = TableGraph.of(tableRepository.all())
     private val rowCollector = RowCollector()
 
     fun collect(dataSet: DataSet) {
         val filteredGraph = tableGraph.filter(dataSet.table)
-        val table = tables.get(dataSet.table)
+        val table = tableRepository.get(dataSet.table)
         val constraints = TableConstraints(dataSet.constraints)
 
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
@@ -66,12 +66,12 @@ class DataSetCollector(
             if (missingRows.isNotEmpty()) {
                 val tablesPointingFrom = filteredGraph.referencesTo(table.name)
                 tablesPointingFrom.forEach { from ->
-                    val fromTable = tables.get(from)
+                    val fromTable = tableRepository.get(from)
                     collect(fromTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
                 }
                 val tablesPointingTo = filteredGraph.referencesFrom(table.name)
                 tablesPointingTo.forEach { to ->
-                    val toTable = tables.get(to)
+                    val toTable = tableRepository.get(to)
                     collect(toTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(row, toTable) }
                 }
             }

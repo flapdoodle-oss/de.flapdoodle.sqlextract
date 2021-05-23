@@ -3,57 +3,29 @@ package de.flapdoodle.sqlextract.db
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.data.DataSetCollector
-import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.Connections
-import de.flapdoodle.sqlextract.jdbc.tables
+import java.nio.file.Path
 
 
-class Extractor {
+class Extractor(
+    private val tableRepositoryFactory: TableRepositoryFactory = TableFromForeignKeyPathRepositoryFactory()
+) {
 
-    fun extract(config: Extraction) {
+    fun extract(config: Extraction, target: Path) {
         println("config: $config")
+        require(target.toFile().isDirectory) {"target $target is not a directory"}
 
         val connection =
             Connections.connection(config.jdbcUrl, config.className, config.user, config.password, config.driver)
 
         connection.use { con ->
-            val tableResolver = CachingTableResolverWrapper(
-                JdbcTableResolver(
-                    connection = connection,
-                    postProcess = addForeignKeys(config.foreignKeys)
-                )
-            )
+            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys)
 
-            println("All Tables")
-            println("-------------------------")
-            val tableNames = connection.metaData.tables().map { table ->
-//            println("--> ${table.name}")
-                table.name
-            }
-            println("-------------------------")
-            println()
-
-            val includedTables = tableNames.filter(config.tableFilter::matchingTableName)
-
-            println("Tables")
-            println("-------------------------")
-            includedTables.groupBy { it.schema }.forEach { schema, list ->
-                println("Schema: $schema")
-                list.forEach {
-                    println("-> ${it.name}")
-                }
-            }
-//        includedTables.forEach {
-//            println("-> $it")
-//        }
-            println("-------------------------")
-
-            val tables = Tables.empty().add(includedTables, tableResolver)
-            val tableGraph = TableGraph.of(tables.all())
+//            val tableGraph = TableGraph.of(tables.all())
 
             val dataSetCollector = DataSetCollector(
                 connection = connection,
-                tables = tables
+                tableRepository = tables
             )
 
             config.dataSets.forEach { dataSet ->
@@ -91,9 +63,9 @@ class Extractor {
 //            while (rs.next()) {
 //                println("-> "+rs.getString(3))
 //            }
-            println("----------------")
-            println(tableGraph.asDot())
-            println("----------------")
+//            println("----------------")
+//            println(tableGraph.asDot())
+//            println("----------------")
 
             val dump = dataSetCollector.snapshot().insertSQL()
             println("----------------")

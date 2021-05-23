@@ -2,14 +2,14 @@ package de.flapdoodle.sqlextract.db
 
 data class Tables internal constructor(
     private val list: List<Table> = emptyList()
-) {
+): TableRepository {
     private val byName = list.associateBy { it.name }
 
-    fun all() = list
+    override fun all() = list
 
     fun find(name: Name): Table? = byName[name]
 
-    fun get(name: Name): Table {
+    override fun get(name: Name): Table {
         val table = find(name)
         require(table != null) { "could not find table: $name" }
         return table
