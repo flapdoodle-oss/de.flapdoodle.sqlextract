@@ -9,6 +9,7 @@ import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.db.Extractor
 import de.flapdoodle.sqlextract.io.Monitor
 import java.nio.file.Files
+import java.nio.file.attribute.PosixFileAttributes
 
 object Extract {
     class Args : CliktCommand() {
@@ -34,7 +35,9 @@ object Extract {
         }
 
         override fun run() {
-            Files.createDirectory(target)
+            if (!target.toFile().exists()) {
+                Files.createDirectory(target)
+            }
             
             val config = Extraction.parse(configPath.toAbsolutePath())
             Monitor.execute {

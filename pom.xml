@@ -157,6 +157,7 @@
                     <argLine>
                         --illegal-access=permit
                     </argLine>
+                    <forkCount>0</forkCount>
                 </configuration>
             </plugin>
             <plugin>

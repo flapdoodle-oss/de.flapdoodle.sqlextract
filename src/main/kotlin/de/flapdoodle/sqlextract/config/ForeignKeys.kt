@@ -26,10 +26,11 @@ data class ForeignKeys(
         }
 
         fun parse(name: String, source: Attributes.Node): ForeignKeys {
-            val foreignKeyList = parse(source.findValues("keys", List::class))
             val schema = source.values("schema", String::class).singleOrNull()
-
             require(schema != null) { "schema not defined" }
+
+            val foreignKeyList = parse(schema, source.findValues("keys", List::class))
+
 
             return ForeignKeys(
                 name = name,
@@ -38,7 +39,7 @@ data class ForeignKeys(
             )
         }
 
-        fun parse(table: List<List<*>>?): List<ForeignKey> {
+        fun parse(schema: String, table: List<List<*>>?): List<ForeignKey> {
             val src: List<List<*>> = (table ?: emptyList())
             val mapped = src.map {
                 require(it.size == 2) { "wrong format, must contain source and destination" }
@@ -46,15 +47,15 @@ data class ForeignKeys(
                 require(it[1] is String) { "can not handle first part of: $it" }
                 val source: String = it[0] as String
                 val destination: String = it[1] as String
-                foreignKey(source, destination)
+                foreignKey(schema, source, destination)
             }
 
             return mapped
         }
 
-        private fun foreignKey(source: String, destination: String): ForeignKey {
-            val s = tableAndColumn(source)
-            val d = tableAndColumn(destination)
+        private fun foreignKey(schema: String, source: String, destination: String): ForeignKey {
+            val s = tableAndColumn(schema, source)
+            val d = tableAndColumn(schema, destination)
             return ForeignKey(
                 sourceTable = s.first,
                 sourceColumn = s.second,
@@ -63,10 +64,10 @@ data class ForeignKeys(
             )
         }
 
-        private fun tableAndColumn(value: String): Pair<Name, String> {
+        private fun tableAndColumn(schema: String, value: String): Pair<Name, String> {
             val idx = value.indexOf(':')
             require(idx != -1) { "wrong format: $value != <SCHEMA.TABLE:COLUMN>" }
-            return Name.parse(value.substring(0, idx)) to value.substring(idx + 1)
+            return Name(value.substring(0, idx), schema) to value.substring(idx + 1)
         }
     }
 }
