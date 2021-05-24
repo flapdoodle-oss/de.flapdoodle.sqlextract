@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.config.TableFilterList
+import de.flapdoodle.sqlextract.data.Target
 import java.sql.Connection
 
 class TableFromForeignKeyPathRepositoryFactory(
@@ -11,7 +12,8 @@ class TableFromForeignKeyPathRepositoryFactory(
     override fun read(
         connection: Connection,
         tableFilter: TableFilterList,
-        foreignKeys: List<ForeignKeys>
+        foreignKeys: List<ForeignKeys>,
+        target: Target
     ): Tables {
         val tableResolver = CachingTableResolverWrapper(
             tableResolverFactory(connection)

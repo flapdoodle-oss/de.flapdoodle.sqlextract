@@ -1,31 +1,36 @@
 package de.flapdoodle.sqlextract.db
 
+import de.flapdoodle.sqlextract.cache.CachingTableRepositoryFactory
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.data.DataSetCollector
+import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.jdbc.Connections
 import java.nio.file.Path
 
 
 class Extractor(
-    private val tableRepositoryFactory: TableRepositoryFactory = TableFromForeignKeyPathRepositoryFactory()
+    private val tableRepositoryFactory: TableRepositoryFactory = CachingTableRepositoryFactory(
+        fallback = TableFromForeignKeyPathRepositoryFactory()
+    )
 ) {
 
-    fun extract(config: Extraction, target: Path) {
+    fun extract(config: Extraction, targetPath: Path) {
         println("config: $config")
-        require(target.toFile().isDirectory) {"target $target is not a directory"}
+        val target = Target(targetPath)
+
 
         val connection =
             Connections.connection(config.jdbcUrl, config.className, config.user, config.password, config.driver)
 
         connection.use { con ->
-            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys)
+            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, target)
 
 //            val tableGraph = TableGraph.of(tables.all())
 
             val dataSetCollector = DataSetCollector(
                 connection = connection,
-                tableRepository = tables
+                tableSet = tables
             )
 
             config.dataSets.forEach { dataSet ->

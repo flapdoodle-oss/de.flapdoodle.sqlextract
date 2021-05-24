@@ -4,7 +4,8 @@ import de.flapdoodle.sqlextract.config.Constraint
 import de.flapdoodle.sqlextract.config.DataSet
 import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
-import de.flapdoodle.sqlextract.db.TableRepository
+import de.flapdoodle.sqlextract.db.TableListRepository
+import de.flapdoodle.sqlextract.db.TableSet
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
@@ -12,10 +13,11 @@ import java.sql.Connection
 
 class DataSetCollector(
     val connection: Connection,
-    val tableRepository: TableRepository
+    val tableSet: TableSet
 ) {
-    private val tableGraph = TableGraph.of(tableRepository.all())
+    private val tableGraph = TableGraph.of(tableSet.all())
     private val rowCollector = RowCollector()
+    private val tableRepository = TableListRepository(tableSet.all())
 
     fun collect(dataSet: DataSet) {
         val filteredGraph = tableGraph.filter(dataSet.table)
