@@ -5,10 +5,12 @@ import de.flapdoodle.sqlextract.config.TableFilterList
 import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.db.*
 import de.flapdoodle.sqlextract.types.Comparators
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.sql.Connection
+import kotlin.io.path.readText
 
 class CachingTableRepositoryFactory(
     private val fallback: TableRepositoryFactory
@@ -35,7 +37,7 @@ class CachingTableRepositoryFactory(
         val file = cacheFile.toFile()
         if (file.exists()) {
             require(file.isFile) {"cache file $cacheFile is not a file"}
-            val json = Files.readString(cacheFile)
+            val json = com.google.common.io.Files.asCharSource(file,Charsets.UTF_8).read()
             return PersistedTables.fromJson(json, hash)
         }
         return null
@@ -43,7 +45,7 @@ class CachingTableRepositoryFactory(
 
     private fun writeCachedTables(list: List<Table>, cacheFile: Path, hash: String) {
         val json = PersistedTables.asJson(list, hash)
-        Files.writeString(cacheFile, json, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        Files.write(cacheFile, json.toByteArray(Charsets.UTF_8), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
 
     private fun hash(
