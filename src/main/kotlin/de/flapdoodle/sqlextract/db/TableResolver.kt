@@ -8,9 +8,8 @@ fun interface TableResolver {
     fun withMonitor(): TableResolver {
         val that = this;
         return TableResolver {
-            Monitor.scope("inspect $it") {
-                that.byName(it)
-            }
+            Monitor.message("inspect $it")
+            that.byName(it)
         }
     }
 
