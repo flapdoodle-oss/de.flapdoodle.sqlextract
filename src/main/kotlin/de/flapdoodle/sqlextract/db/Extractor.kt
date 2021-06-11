@@ -18,10 +18,11 @@ class Extractor(
     fun extract(config: Extraction, targetPath: Path) {
         println("config: $config")
         val target = Target(targetPath)
+        val connectionConfig = config.databaseConnection
 
 
         val connection =
-            Connections.connection(config.jdbcUrl, config.className, config.user, config.password, config.driver)
+            Connections.connection(connectionConfig.jdbcUrl, connectionConfig.className, connectionConfig.user, connectionConfig.password, connectionConfig.driver)
 
         connection.use { con ->
             val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, target)
