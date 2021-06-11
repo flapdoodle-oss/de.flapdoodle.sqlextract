@@ -1,10 +1,11 @@
-package de.flapdoodle.sqlextract.config
+package de.flapdoodle.sqlextract.io
 
 import de.flapdoodle.sqlextract.filetypes.Attributes
 import de.flapdoodle.sqlextract.filetypes.Toml
 import de.flapdoodle.sqlextract.filetypes.Yaml
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 object IO {
     fun read(source: Path): Attributes.Node {
@@ -19,6 +20,10 @@ object IO {
     }
 
     fun <T> read(source: Path, transformation: (Attributes.Node) -> T): T {
-        return transformation(read(source))        
+        return transformation(read(source))
+    }
+
+    fun write(target: Path, content: String) {
+        Files.write(target, content.toByteArray(Charsets.UTF_8), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
 }

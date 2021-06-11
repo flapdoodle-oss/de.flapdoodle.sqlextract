@@ -1,9 +1,7 @@
 package de.flapdoodle.sqlextract.config
 
 import de.flapdoodle.sqlextract.filetypes.Attributes
-import de.flapdoodle.sqlextract.filetypes.Toml
-import de.flapdoodle.sqlextract.filetypes.Yaml
-import java.nio.file.Files
+import de.flapdoodle.sqlextract.io.IO
 import java.nio.file.Path
 
 data class Extraction(

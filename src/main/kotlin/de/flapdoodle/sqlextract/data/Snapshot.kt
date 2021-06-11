@@ -46,7 +46,11 @@ data class Snapshot(
 
     private fun asSql(value: Any?): String {
         return if (value != null)
-            value.toString()
+            when (value) {
+                is String -> "'$value'"
+                else -> value.toString()
+            }
+
         else
             "null"
     }

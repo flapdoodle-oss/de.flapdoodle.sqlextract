@@ -55,7 +55,9 @@ class TableGraph(
 //        println("---------------")
 
         val filteredGraph = Graphs.filter(graph, Predicate {
-            connectedRoots.contains(it) || connectedRoots.any { root -> Graphs.hasPath(graph, root, it) }
+            connectedRoots.contains(it)
+                    || connectedRoots.any { root -> Graphs.hasPath(graph, root, it) }
+                    || it == current
         })
 
 //        println(asDot(filteredGraph))
@@ -114,6 +116,7 @@ class TableGraph(
             val tablesByName = tables.associateBy { it.name }
             val wrapper = Wrapper()
             tables.forEach { table ->
+                wrapper.add(table.name)
                 table.foreignKeys.forEach { foreignKey ->
                     val dstTable = tablesByName[foreignKey.destinationTable]
                     require(dstTable != null) { "table ${foreignKey.destinationTable} not found" }
@@ -127,6 +130,11 @@ class TableGraph(
 
         class Wrapper {
             private val builder = Graphs.graphBuilder(Graphs.directedGraph<GraphVertex>()).get()
+
+            fun add(name: Name) {
+                val vertex = GraphVertex.Table(name)
+                builder.addVertex(vertex)
+            }
 
             fun add(source: Name, sourceColumn: String, dest: Name, destColumn: String) {
                 val srcTable = GraphVertex.Table(source)

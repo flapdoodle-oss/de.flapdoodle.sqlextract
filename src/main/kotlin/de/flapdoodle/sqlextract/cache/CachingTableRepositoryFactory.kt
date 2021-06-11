@@ -4,6 +4,7 @@ import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.config.TableFilterList
 import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.db.*
+import de.flapdoodle.sqlextract.io.IO
 import de.flapdoodle.sqlextract.types.Comparators
 import java.nio.charset.Charset
 import java.nio.file.Files
@@ -45,7 +46,7 @@ class CachingTableRepositoryFactory(
 
     private fun writeCachedTables(list: List<Table>, cacheFile: Path, hash: String) {
         val json = PersistedTables.asJson(list, hash)
-        Files.write(cacheFile, json.toByteArray(Charsets.UTF_8), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        IO.write(cacheFile,json)
     }
 
     private fun hash(

@@ -5,6 +5,7 @@ import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.data.DataSetCollector
 import de.flapdoodle.sqlextract.data.Target
+import de.flapdoodle.sqlextract.io.IO
 import de.flapdoodle.sqlextract.jdbc.Connections
 import java.nio.file.Path
 
@@ -41,45 +42,17 @@ class Extractor(
                 dataSetCollector.collect(dataSet)
             }
 
-//            config.dataSets.forEach { dataSet ->
-//                println("-> ${dataSet.name}")
-//
-////                val dataSetTables = Tables.empty()
-////                    .add(dataSet.include + dataSet.table, tableResolver)
-//
-//                val table = tables.get(dataSet.table)
-//
-//                val sqlQuery = "select * from ${dataSet.table.asSQL()} where ${dataSet.where}"
-//
-//                println("query: $sqlQuery")
-//                con.query { prepareStatement(sqlQuery).executeQuery() }
-//                    .map {
-//                        table.columns.forEach { column ->
-//                            val value = column(column.name, Object::class)
-//                            println("${column.name}=$value")
-//                        }
-//                    }
-////                val statement = connection.prepareStatement(sqlQuery)
-////                val resultSet = statement.executeQuery()
-////                while (resultSet.next()) {
-////                    println("-> "+resultSet)
-////                }
-//            }
-//            val rs: ResultSet = it.metaData.getTables(null, null, "%", null)
-//            while (rs.next()) {
-//                println("-> "+rs.getString(3))
-//            }
-//            println("----------------")
-//            println(tableGraph.asDot())
-//            println("----------------")
 
             val dump = dataSetCollector.snapshot().insertSQL()
-            println("----------------")
-            dump.forEach {
-                println(it)
-                println("\n\n")
-            }
-            println("----------------")
+            val dumpFile = target.dumpFile()
+
+            IO.write(dumpFile, dump.joinToString(separator = "\n\n\n"));
+//            println("----------------")
+//            dump.forEach {
+//                println(it)
+//                println("\n\n")
+//            }
+//            println("----------------")
         }
     }
 

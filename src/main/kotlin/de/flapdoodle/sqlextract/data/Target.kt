@@ -10,4 +10,8 @@ data class Target(val path: Path) {
     fun cacheFile(appendix: String): Path {
         return path.resolve("cache--$appendix")
     }
+
+    fun dumpFile(): Path {
+        return path.resolve("dump.sql")
+    }
 }
