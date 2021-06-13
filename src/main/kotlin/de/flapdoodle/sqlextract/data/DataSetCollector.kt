@@ -6,7 +6,7 @@ import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.db.TableListRepository
 import de.flapdoodle.sqlextract.db.TableSet
-import de.flapdoodle.sqlextract.graph.TableGraph
+import de.flapdoodle.sqlextract.graph.ForeignKeyGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
 import java.lang.IllegalArgumentException
@@ -16,7 +16,7 @@ class DataSetCollector(
     val connection: Connection,
     val tableSet: TableSet
 ) {
-    private val tableGraph = TableGraph.of(tableSet.all())
+    private val tableGraph = ForeignKeyGraph.of(tableSet.all())
     private val rowCollector = RowCollector()
     private val tableRepository = TableListRepository(tableSet.all())
 
@@ -51,7 +51,7 @@ class DataSetCollector(
 
     private fun collect(
         table: Table,
-        filteredGraph: TableGraph,
+        filteredGraph: ForeignKeyGraph,
         constraints: TableConstraints,
         query: String,
         parameters: Map<Int, Any> = emptyMap(),
@@ -106,7 +106,7 @@ class DataSetCollector(
 
     private fun collect(
         table: Table,
-        filteredGraph: TableGraph,
+        filteredGraph: ForeignKeyGraph,
         tableConstraints: TableConstraints,
         newRows: List<TableRow>,
         failOnEmptyResult: Boolean,

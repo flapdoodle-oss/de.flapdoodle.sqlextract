@@ -1,21 +1,21 @@
 package de.flapdoodle.sqlextract.db
 
+import de.flapdoodle.sqlextract.TableBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.sql.JDBCType
 
 internal class TablesTest {
 
-    private val fooTable = Table(
-        name = Name.parse("s.foo"), foreignKeys = setOf(
-            ForeignKey(Name("foo","s"), "BAR_ID", Name("bar","s"), "ID")
-        )
-    )
+    private val fooTable = TableBuilder("foo","s")
+        .column("BAR_ID",JDBCType.INTEGER)
+        .foreignKey("BAR_ID","bar","ID")
+        .build()
 
-    private val barTable = Table(
-        name = Name.parse("s.bar"), foreignKeys = setOf(
-            ForeignKey(Name("bar","s"), "BAZ_ID", Name("baz","s"), "ID")
-        )
-    )
+    private val barTable = TableBuilder("bar","s")
+        .column("BAZ_ID", JDBCType.INTEGER)
+        .foreignKey("BAZ_ID", "baz", "ID")
+        .build()
 
     private val bazTable = Table(
         name = Name.parse("s.baz")
