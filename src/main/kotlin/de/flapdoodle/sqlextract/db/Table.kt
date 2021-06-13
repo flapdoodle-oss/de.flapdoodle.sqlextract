@@ -7,7 +7,12 @@ data class Table(
         val foreignKeys: Set<ForeignKey> = emptySet()
 ) {
     init {
+        val columnNames = columns.map { it.name }
         require(foreignKeys.all { it.sourceTable == name }) { "invalid foreignKey: $this" }
+        require(foreignKeys.all {  columnNames.contains(it.sourceColumn) }) {
+            val unknown = foreignKeys.filter { !columnNames.contains(it.sourceColumn) }
+            "foreignKeys contains invalid column names: $unknown - $this "
+        }
     }
 
     fun withForeignKeys(keys: List<ForeignKey>): Table {

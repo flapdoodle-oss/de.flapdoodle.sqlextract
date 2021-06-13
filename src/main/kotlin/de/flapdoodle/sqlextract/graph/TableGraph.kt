@@ -16,6 +16,36 @@ class TableGraph(
         return asDot(graph)
     }
 
+    fun dumpDebugInfo(table: Name) {
+        println("--$table-8<---------------------------")
+        val current = GraphVertex.Table(table)
+        graph.incomingEdgesOf(current).forEach {
+            println("$it -> ")
+        }
+        graph.outgoingEdgesOf(current).forEach {
+            println("-> $it")
+        }
+        println("--$table->8---------------------------")
+    }
+
+    fun foreignKeys(table: Name, incoming: Boolean) {
+        val current = GraphVertex.Table(table)
+        if (incoming) {
+            val targetColumns = graph.sourcesOf(current)
+            val sourceColumns = targetColumns.flatMap { targetColumn ->
+                graph.sourcesOf(targetColumn).map { targetColumn to it }
+            }
+            val foreignKeys = sourceColumns.flatMap { (targetColumn,sourceColumn) ->
+                graph.sourcesOf(sourceColumn).map { table ->
+
+                }
+            }
+//            val sourceTables = sourceColumns.flatMap { graph.sourcesOf(it) }
+        } else {
+
+        }
+    }
+
     fun referencesTo(table: Name): List<Name> {
         val current = GraphVertex.Table(table)
 
@@ -45,7 +75,7 @@ class TableGraph(
 
         val allRoots = Graphs.rootsOf(graph).firstOrNull()?.vertices() ?: emptySet()
         val connectedRoots = allRoots.filter {
-            Graphs.hasPath(graph, it, current)
+            Graphs.hasPath(graph, it, current) || current == it
         }
 //        println("roots")
 //        println("---------------")
@@ -57,7 +87,6 @@ class TableGraph(
         val filteredGraph = Graphs.filter(graph, Predicate {
             connectedRoots.contains(it)
                     || connectedRoots.any { root -> Graphs.hasPath(graph, root, it) }
-                    || it == current
         })
 
 //        println(asDot(filteredGraph))
@@ -113,6 +142,8 @@ class TableGraph(
         }
 
         fun of(tables: List<Table>): TableGraph {
+            // src -> FK -> dst
+            
             val tablesByName = tables.associateBy { it.name }
             val wrapper = Wrapper()
             tables.forEach { table ->
@@ -137,6 +168,7 @@ class TableGraph(
             }
 
             fun add(source: Name, sourceColumn: String, dest: Name, destColumn: String) {
+
                 val srcTable = GraphVertex.Table(source)
                 val srcColumn = GraphVertex.TableColumn(source, sourceColumn)
                 val dstColumn = GraphVertex.TableColumn(dest, destColumn)

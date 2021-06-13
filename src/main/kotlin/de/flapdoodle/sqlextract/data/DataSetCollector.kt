@@ -9,6 +9,7 @@ import de.flapdoodle.sqlextract.db.TableSet
 import de.flapdoodle.sqlextract.graph.TableGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
+import java.lang.IllegalArgumentException
 import java.sql.Connection
 
 class DataSetCollector(
@@ -20,9 +21,25 @@ class DataSetCollector(
     private val tableRepository = TableListRepository(tableSet.all())
 
     fun collect(dataSet: DataSet) {
-        val filteredGraph = tableGraph.filter(dataSet.table)
+        val filteredGraph = tableGraph // tableGraph.filter(dataSet.table)
         val table = tableRepository.get(dataSet.table)
         val constraints = TableConstraints(dataSet.constraints)
+
+//        println("------------------------")
+//        tableGraph.referencesTo(table.name).forEach {
+//            println("$it -> ${table.name}")
+//        }
+//        tableGraph.referencesFrom(table.name).forEach {
+//            println("${table.name} -> $it")
+//        }
+//        println("- - - - - - - - - - - - -")
+//        filteredGraph.referencesTo(table.name).forEach {
+//            println("$it -> ${table.name}")
+//        }
+//        filteredGraph.referencesFrom(table.name).forEach {
+//            println("${table.name} -> $it")
+//        }
+//        println("------------------------")
 
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
         collect(table, filteredGraph, constraints, sqlQuery)
@@ -37,7 +54,8 @@ class DataSetCollector(
         filteredGraph: TableGraph,
         constraints: TableConstraints,
         query: String,
-        parameters: Map<Int, Any> = emptyMap()
+        parameters: Map<Int, Any> = emptyMap(),
+        failOnEmptyResult: Boolean = false
     ) {
         if (!rowCollector.skipQuery(query, parameters)) {
 
@@ -62,19 +80,25 @@ class DataSetCollector(
                     }.toMap())
                 }
 
+            if (newRows.isEmpty() && failOnEmptyResult) {
+                throw IllegalArgumentException("expected any result, but got nothing.")
+            }
+
             val missingRows = rowCollector.missingRows(newRows)
             rowCollector.add(newRows)
 
             if (missingRows.isNotEmpty()) {
+                filteredGraph.dumpDebugInfo(table.name)
+
                 val tablesPointingFrom = filteredGraph.referencesTo(table.name)
                 tablesPointingFrom.forEach { from ->
                     val fromTable = tableRepository.get(from)
-                    collect(fromTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(fromTable, row) }
+                    collect(fromTable, filteredGraph, constraints, missingRows, false) { row -> constraintsOf(fromTable, row) }
                 }
                 val tablesPointingTo = filteredGraph.referencesFrom(table.name)
                 tablesPointingTo.forEach { to ->
                     val toTable = tableRepository.get(to)
-                    collect(toTable, filteredGraph, constraints, missingRows) { row -> constraintsOf(row, toTable) }
+                    collect(toTable, filteredGraph, constraints, missingRows, true) { row -> constraintsOf(row, toTable) }
                 }
             }
         }
@@ -85,7 +109,8 @@ class DataSetCollector(
         filteredGraph: TableGraph,
         tableConstraints: TableConstraints,
         newRows: List<TableRow>,
-        constraintsFactory: (TableRow) -> List<Pair<String, Any?>>
+        failOnEmptyResult: Boolean,
+        constraintsFactory: (TableRow) -> List<Pair<String, Any?>>,
     ) {
         val tableConstraint = tableConstraints.find(table.name)
 
@@ -100,7 +125,7 @@ class DataSetCollector(
                 .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, filteredGraph, tableConstraints, query, parameters)
+            collect(table, filteredGraph, tableConstraints, query, parameters, failOnEmptyResult)
         }
     }
 
