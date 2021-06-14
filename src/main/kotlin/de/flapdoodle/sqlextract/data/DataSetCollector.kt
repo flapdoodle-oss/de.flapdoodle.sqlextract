@@ -293,6 +293,7 @@ class DataSetCollector(
             }
 
             private fun rowKey(table: Table, values: Map<String, Any?>): RowKey {
+                require(table.primaryKeys.isNotEmpty()) {"table ${table.name} does not have any primary keys"}
                 return RowKey(table.primaryKeys.map {
                     it.columnName to knownType(values[it.columnName])
                 }.toMap())
@@ -306,7 +307,7 @@ class DataSetCollector(
 
     private data class RowKey(val key: Map<String, Any?>) {
         init {
-//            require(key.isNotEmpty()) {"key is empty"}
+            require(key.isNotEmpty()) {"key is empty"}
         }
     }
 }
