@@ -42,7 +42,7 @@ class DataSetCollector(
 //        println("------------------------")
 
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
-        collect(table, filteredGraph, constraints, sqlQuery, emptyMap(), CollectionMode.FollowForeignKeys)
+        collect(table, filteredGraph, constraints, sqlQuery, emptyMap(), CollectionMode.ForeignKeysAndBacktrack, Direction.FollowingForeignKeys)
     }
 
     fun snapshot(): Snapshot {
@@ -50,12 +50,13 @@ class DataSetCollector(
     }
 
     private fun collect(
-        table: Table,
-        filteredGraph: ForeignKeyGraph,
-        constraints: TableConstraints,
-        query: String,
-        parameters: Map<Int, Any> = emptyMap(),
-        mode: CollectionMode
+            table: Table,
+            filteredGraph: ForeignKeyGraph,
+            constraints: TableConstraints,
+            query: String,
+            parameters: Map<Int, Any> = emptyMap(),
+            mode: CollectionMode,
+            direction: Direction
     ) {
         if (!rowCollector.skipQuery(query, parameters)) {
 
@@ -80,7 +81,7 @@ class DataSetCollector(
                     }.toMap())
                 }
 
-            if (newRows.isEmpty() && mode==CollectionMode.FollowForeignKeys) {
+            if (newRows.isEmpty() && direction==Direction.FollowingForeignKeys) {
                 throw IllegalArgumentException("expected any result, but got nothing.")
             }
 
@@ -88,26 +89,30 @@ class DataSetCollector(
             rowCollector.add(newRows)
 
             if (missingRows.isNotEmpty()) {
-                filteredGraph.dumpDebugInfo(table.name)
+//                filteredGraph.dumpDebugInfo(table.name)
 
-                val tablesPointingFrom = filteredGraph.referencesTo(table.name)
-                tablesPointingFrom.forEach { from ->
-                    val fromTable = tableRepository.get(from)
-                    collect(
-                        fromTable,
-                        filteredGraph,
-                        constraints,
-                        missingRows,
-                        CollectionMode.Backtrack
-                    ) { row -> constraintsOf(fromTable, row) }
+                val shouldBacktrack = direction==Direction.Backtrack || mode==CollectionMode.ForeignKeysAndBacktrack
+
+                if (shouldBacktrack) {
+                    val tablesPointingFrom = filteredGraph.referencesTo(table.name)
+                    tablesPointingFrom.forEach { from ->
+                        val fromTable = tableRepository.get(from)
+                        collect(
+                                fromTable,
+                                filteredGraph,
+                                constraints,
+                                missingRows,
+                                mode,
+                                Direction.Backtrack
+                        ) { row -> constraintsOf(fromTable, row) }
+                    }
                 }
-                if (mode==CollectionMode.FollowForeignKeys) {
-                    val tablesPointingTo = filteredGraph.referencesFrom(table.name)
-                    tablesPointingTo.forEach { to ->
-                        val toTable = tableRepository.get(to)
-                        collect(toTable, filteredGraph, constraints, missingRows, mode) { row ->
-                            constraintsOf(row, toTable)
-                        }
+
+                val tablesPointingTo = filteredGraph.referencesFrom(table.name)
+                tablesPointingTo.forEach { to ->
+                    val toTable = tableRepository.get(to)
+                    collect(toTable, filteredGraph, constraints, missingRows, CollectionMode.OnlyForeignKeys, Direction.FollowingForeignKeys) { row ->
+                        constraintsOf(row, toTable)
                     }
                 }
             }
@@ -120,6 +125,7 @@ class DataSetCollector(
         tableConstraints: TableConstraints,
         newRows: List<TableRow>,
         mode: CollectionMode,
+        direction: Direction,
         constraintsFactory: (TableRow) -> List<Pair<String, Any?>>,
     ) {
         val tableConstraint = tableConstraints.find(table.name)
@@ -135,7 +141,7 @@ class DataSetCollector(
                 .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, filteredGraph, tableConstraints, query, parameters, mode)
+            collect(table, filteredGraph, tableConstraints, query, parameters, mode, direction)
         }
     }
 
@@ -189,9 +195,14 @@ class DataSetCollector(
         fun find(table: Name) = byTable[table]
     }
 
-    private enum class CollectionMode {
-        FollowForeignKeys,
+    private enum class Direction {
+        FollowingForeignKeys,
         Backtrack
+    }
+
+    private enum class CollectionMode {
+        ForeignKeysAndBacktrack,
+        OnlyForeignKeys
     }
 
     private class RowCollector {
