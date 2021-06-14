@@ -15,18 +15,6 @@ class ForeignKeyGraph(
         return asDot(graph)
     }
 
-    fun dumpDebugInfo(table: Name) {
-        println("--$table-8<---------------------------")
-        val current = GraphVertex.Table(table)
-        graph.incomingEdgesOf(current).forEach {
-            println("$it -> ")
-        }
-        graph.outgoingEdgesOf(current).forEach {
-            println("-> $it")
-        }
-        println("--$table->8---------------------------")
-    }
-
     private fun foreignKeys(table: Name, incoming: Boolean): List<ForeignKey> {
         val current = GraphVertex.Table(table)
         val foreignKeyEdges = if (incoming) {

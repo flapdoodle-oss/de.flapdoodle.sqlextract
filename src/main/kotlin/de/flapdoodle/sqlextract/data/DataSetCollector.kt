@@ -89,12 +89,11 @@ class DataSetCollector(
             rowCollector.add(newRows)
 
             if (missingRows.isNotEmpty()) {
-//                filteredGraph.dumpDebugInfo(table.name)
+                val tablesPointingFrom = filteredGraph.referencesTo(table.name)
 
                 val shouldBacktrack = direction==Direction.Backtrack || mode==CollectionMode.ForeignKeysAndBacktrack
 
                 if (shouldBacktrack) {
-                    val tablesPointingFrom = filteredGraph.referencesTo(table.name)
                     tablesPointingFrom.forEach { from ->
                         val fromTable = tableRepository.get(from)
                         collect(
