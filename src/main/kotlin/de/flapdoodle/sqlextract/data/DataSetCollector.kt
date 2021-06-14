@@ -304,5 +304,9 @@ class DataSetCollector(
         }
     }
 
-    private data class RowKey(val key: Map<String, Any?>)
+    private data class RowKey(val key: Map<String, Any?>) {
+        init {
+//            require(key.isNotEmpty()) {"key is empty"}
+        }
+    }
 }

@@ -22,4 +22,8 @@ data class Target(val path: Path) {
     fun schemaDotFile(): Path {
         return path.resolve("schema.dot")
     }
+
+    fun schemaJsonFile(): Path {
+        return path.resolve("schema.json")
+    }
 }

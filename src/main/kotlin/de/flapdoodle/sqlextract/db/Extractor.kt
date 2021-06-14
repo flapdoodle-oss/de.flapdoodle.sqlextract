@@ -52,6 +52,7 @@ class Extractor(
 
             IO.write(target.tableDotFile(), snapshot.tableGraphAsDot())
             IO.write(target.schemaDotFile(), snapshot.schemaGraphAsDot())
+            IO.write(target.schemaJsonFile(), snapshot.schemaAsJson())
 //            println("----------------")
 //            dump.forEach {
 //                println(it)

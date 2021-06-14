@@ -11,7 +11,7 @@ object PersistedTables {
         .add(KotlinJsonAdapterFactory())
         .build()
 
-    private val modelAdapter = moshi.adapter(PersistedTablesFile::class.java)
+    private val modelAdapter = moshi.adapter(PersistedTablesFile::class.java).indent("  ")
 
     private data class PersistedTablesFile(
         val hash: String,

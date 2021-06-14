@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.data
 
+import de.flapdoodle.sqlextract.cache.PersistedTables
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.graph.ForeignKeyGraph
 
@@ -32,6 +33,10 @@ data class Snapshot(
 
     fun tableGraphAsDot(): String {
         return tableGraph.filter(tableByName.keys).asDot()
+    }
+
+    fun schemaAsJson(): String {
+        return PersistedTables.asJson(tableMap.keys.toList(),"<no-hash>")
     }
 
     private fun insertSQL(table: Table, rows: List<Row>): List<String> {
