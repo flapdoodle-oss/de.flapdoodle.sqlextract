@@ -91,6 +91,8 @@ class DataSetCollector(
             val missingRows = rowCollector.missingRows(newRows)
             rowCollector.add(newRows)
 
+            println("collect $query with $parameters ($tableConstraint) -> ${newRows.size} (missing: ${missingRows.size})")
+
             if (missingRows.isNotEmpty()) {
                 val tablesPointingFrom = filteredGraph.referencesTo(table.name)
                 val validBacktrackTables = tablesPointingFrom.filter {

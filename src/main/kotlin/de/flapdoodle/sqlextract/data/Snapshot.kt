@@ -26,6 +26,10 @@ data class Snapshot(
         }
     }
 
+    fun schemaGraphAsDot(): String {
+        return tableGraph.asDot()
+    }
+
     fun tableGraphAsDot(): String {
         return tableGraph.filter(tableByName.keys).asDot()
     }

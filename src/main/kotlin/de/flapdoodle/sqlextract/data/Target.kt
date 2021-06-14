@@ -15,7 +15,11 @@ data class Target(val path: Path) {
         return path.resolve("dump.sql")
     }
 
-    fun dotFile(): Path {
+    fun tableDotFile(): Path {
         return path.resolve("tables.dot")
+    }
+
+    fun schemaDotFile(): Path {
+        return path.resolve("schema.dot")
     }
 }

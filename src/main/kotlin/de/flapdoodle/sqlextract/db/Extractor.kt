@@ -50,8 +50,8 @@ class Extractor(
 
             IO.write(dumpFile, dump.joinToString(separator = "\n\n\n"));
 
-            val dotFile = target.dotFile()
-            IO.write(dotFile, snapshot.tableGraphAsDot())
+            IO.write(target.tableDotFile(), snapshot.tableGraphAsDot())
+            IO.write(target.schemaDotFile(), snapshot.schemaGraphAsDot())
 //            println("----------------")
 //            dump.forEach {
 //                println(it)
