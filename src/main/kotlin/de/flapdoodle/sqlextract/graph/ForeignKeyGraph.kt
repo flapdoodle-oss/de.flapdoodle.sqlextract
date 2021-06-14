@@ -26,16 +26,21 @@ class ForeignKeyGraph(
 
     private fun foreignKeys(table: Name, incoming: Boolean): List<ForeignKey> {
         val current = GraphVertex.Table(table)
+//        val foreignKeyEdges = if (incoming) {
+//            val targetColumns = graph.sourcesOf(current)
+//            targetColumns.flatMap { targetColumn ->
+//                graph.incomingEdgesOf(targetColumn).map { it as Edge.ForeignKeyBetweenColumn }
+//            }
+//        } else {
+//            val sourceColumns = graph.targetsOf(current)
+//            sourceColumns.flatMap { targetColumn ->
+//                graph.outgoingEdgesOf(targetColumn).map { it as Edge.ForeignKeyBetweenColumn }
+//            }
+//        }
         val foreignKeyEdges = if (incoming) {
-            val targetColumns = graph.sourcesOf(current)
-            targetColumns.flatMap { targetColumn ->
-                graph.incomingEdgesOf(targetColumn).map { it as Edge.ForeignKeyBetweenColumn }
-            }
+            graph.incomingEdgesOf(current).map { it as Edge.ForeignKeyBetweenColumn }
         } else {
-            val sourceColumns = graph.targetsOf(current)
-            sourceColumns.flatMap { targetColumn ->
-                graph.outgoingEdgesOf(targetColumn).map { it as Edge.ForeignKeyBetweenColumn }
-            }
+            graph.outgoingEdgesOf(current).map { it as Edge.ForeignKeyBetweenColumn }
         }
         return foreignKeyEdges.map { it.foreignKey }
     }
@@ -113,26 +118,27 @@ class ForeignKeyGraph(
 
             fun add(foreignKey: ForeignKey) {
                 val srcTable = GraphVertex.Table(foreignKey.sourceTable)
-                val srcColumn = GraphVertex.TableColumn(foreignKey.sourceTable, foreignKey.sourceColumn)
-                val dstColumn = GraphVertex.TableColumn(foreignKey.destinationTable, foreignKey.destinationColumn)
+//                val srcColumn = GraphVertex.TableColumn(foreignKey.sourceTable, foreignKey.sourceColumn)
+//                val dstColumn = GraphVertex.TableColumn(foreignKey.destinationTable, foreignKey.destinationColumn)
                 val dstTable = GraphVertex.Table(foreignKey.destinationTable)
 
                 builder.addVertex(srcTable)
-                builder.addVertex(srcColumn)
-                builder.addVertex(dstColumn)
+//                builder.addVertex(srcColumn)
+//                builder.addVertex(dstColumn)
                 builder.addVertex(dstTable)
 
-                builder.addEdge(
-                    srcTable,
-                    srcColumn,
-                    Edge.TableToColumn(foreignKey.sourceTable, foreignKey.sourceColumn)
-                )
-                builder.addEdge(srcColumn, dstColumn, Edge.ForeignKeyBetweenColumn(foreignKey))
-                builder.addEdge(
-                    dstColumn,
-                    dstTable,
-                    Edge.TableToColumn(foreignKey.destinationTable, foreignKey.destinationColumn)
-                )
+//                builder.addEdge(
+//                    srcTable,
+//                    srcColumn,
+//                    Edge.TableToColumn(foreignKey.sourceTable, foreignKey.sourceColumn)
+//                )
+//                builder.addEdge(srcColumn, dstColumn, Edge.ForeignKeyBetweenColumn(foreignKey))
+//                builder.addEdge(
+//                    dstColumn,
+//                    dstTable,
+//                    Edge.TableToColumn(foreignKey.destinationTable, foreignKey.destinationColumn)
+//                )
+                builder.addEdge(srcTable, dstTable, Edge.ForeignKeyBetweenColumn(foreignKey))
             }
 
             fun build(): DefaultDirectedGraph<GraphVertex, Edge> {
