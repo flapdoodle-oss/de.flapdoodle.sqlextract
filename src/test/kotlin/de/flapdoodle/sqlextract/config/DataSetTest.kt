@@ -27,7 +27,8 @@ internal class DataSetTest {
                     limit = 20,
                     orderBy = listOf("NAME desc")
                 )
-            )
+            ),
+            backtrack = emptyList()
         )
 
         assertThat(result).isEqualTo(expected)

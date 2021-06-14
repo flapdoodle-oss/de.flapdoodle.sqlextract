@@ -4,12 +4,13 @@ import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.filetypes.Attributes
 
 data class DataSet(
-    val name: String,
-    val table: Name,
-    val where: List<String>,
-    val limit: Long?,
-    val orderBy: List<String>,
-    val constraints: List<Constraint>
+        val name: String,
+        val table: Name,
+        val where: List<String>,
+        val limit: Long?,
+        val orderBy: List<String>,
+        val constraints: List<Constraint>,
+        val backtrack: List<Backtrack>
 ) {
 
     companion object {
@@ -26,13 +27,18 @@ data class DataSet(
                 Constraint.parse(it)
             }
 
+            val backtrack = source.findValues("backtrack", Attributes.Node::class)?.map {
+                Backtrack.parse(it)
+            }
+
             return DataSet(
                 name = name,
                 table = Name.parse(table),
                 where = where,
                 limit = limit,
                 orderBy = orderBy ?: emptyList(),
-                constraints = constraints ?: emptyList()
+                constraints = constraints ?: emptyList(),
+                backtrack = backtrack ?: emptyList()
             )
         }
     }

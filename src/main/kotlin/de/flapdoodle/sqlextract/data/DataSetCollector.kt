@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.data
 
+import de.flapdoodle.sqlextract.config.Backtrack
 import de.flapdoodle.sqlextract.config.Constraint
 import de.flapdoodle.sqlextract.config.DataSet
 import de.flapdoodle.sqlextract.db.Name
@@ -24,6 +25,7 @@ class DataSetCollector(
         val filteredGraph = tableGraph // tableGraph.filter(dataSet.table)
         val table = tableRepository.get(dataSet.table)
         val constraints = TableConstraints(dataSet.constraints)
+        val backtrackOverride = BacktrackOverride(dataSet.backtrack)
 
 //        println("------------------------")
 //        tableGraph.referencesTo(table.name).forEach {
@@ -42,7 +44,7 @@ class DataSetCollector(
 //        println("------------------------")
 
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
-        collect(table, filteredGraph, constraints, sqlQuery, emptyMap(), CollectionMode.ForeignKeysAndBacktrack, Direction.FollowingForeignKeys)
+        collect(table, filteredGraph, constraints, sqlQuery, emptyMap(), CollectionMode.ForeignKeysAndBacktrack, Direction.FollowingForeignKeys, backtrackOverride)
     }
 
     fun snapshot(): Snapshot {
@@ -56,7 +58,8 @@ class DataSetCollector(
             query: String,
             parameters: Map<Int, Any> = emptyMap(),
             mode: CollectionMode,
-            direction: Direction
+            direction: Direction,
+            backtrackOverride: BacktrackOverride
     ) {
         if (!rowCollector.skipQuery(query, parameters)) {
 
@@ -90,27 +93,29 @@ class DataSetCollector(
 
             if (missingRows.isNotEmpty()) {
                 val tablesPointingFrom = filteredGraph.referencesTo(table.name)
+                val validBacktrackTables = tablesPointingFrom.filter {
+                    direction==Direction.Backtrack
+                            || mode==CollectionMode.ForeignKeysAndBacktrack
+                            || backtrackOverride.backtrackEnabled(it, table.name)
+                }
 
-                val shouldBacktrack = direction==Direction.Backtrack || mode==CollectionMode.ForeignKeysAndBacktrack
-
-                if (shouldBacktrack) {
-                    tablesPointingFrom.forEach { from ->
-                        val fromTable = tableRepository.get(from)
-                        collect(
-                                fromTable,
-                                filteredGraph,
-                                constraints,
-                                missingRows,
-                                mode,
-                                Direction.Backtrack
-                        ) { row -> constraintsOf(fromTable, row) }
-                    }
+                validBacktrackTables.forEach { from ->
+                    val fromTable = tableRepository.get(from)
+                    collect(
+                            fromTable,
+                            filteredGraph,
+                            constraints,
+                            backtrackOverride,
+                            missingRows,
+                            mode,
+                            Direction.Backtrack
+                    ) { row -> constraintsOf(fromTable, row) }
                 }
 
                 val tablesPointingTo = filteredGraph.referencesFrom(table.name)
                 tablesPointingTo.forEach { to ->
                     val toTable = tableRepository.get(to)
-                    collect(toTable, filteredGraph, constraints, missingRows, CollectionMode.OnlyForeignKeys, Direction.FollowingForeignKeys) { row ->
+                    collect(toTable, filteredGraph, constraints, backtrackOverride, missingRows, CollectionMode.OnlyForeignKeys, Direction.FollowingForeignKeys) { row ->
                         constraintsOf(row, toTable)
                     }
                 }
@@ -122,6 +127,7 @@ class DataSetCollector(
         table: Table,
         filteredGraph: ForeignKeyGraph,
         tableConstraints: TableConstraints,
+        backtrackOverride: BacktrackOverride,
         newRows: List<TableRow>,
         mode: CollectionMode,
         direction: Direction,
@@ -140,7 +146,7 @@ class DataSetCollector(
                 .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, filteredGraph, tableConstraints, query, parameters, mode, direction)
+            collect(table, filteredGraph, tableConstraints, query, parameters, mode, direction, backtrackOverride)
         }
     }
 
@@ -192,6 +198,12 @@ class DataSetCollector(
         private val byTable = constraints.associateBy { it.table }
 
         fun find(table: Name) = byTable[table]
+    }
+
+    private class BacktrackOverride(val backtrack: List<Backtrack>) {
+        fun backtrackEnabled(source: Name, destination: Name): Boolean {
+            return backtrack.any { it.source==source && it.destination==destination }
+        }
     }
 
     private enum class Direction {
