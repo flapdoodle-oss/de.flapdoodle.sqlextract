@@ -85,7 +85,7 @@ class DataSetCollector(
                 }
 
             if (newRows.isEmpty() && direction==Direction.FollowingForeignKeys) {
-                throw IllegalArgumentException("expected any result, but got nothing.")
+                //TODO reenable this check throw IllegalArgumentException("expected any result, but got nothing.")
             }
 
             val missingRows = rowCollector.missingRows(newRows)
