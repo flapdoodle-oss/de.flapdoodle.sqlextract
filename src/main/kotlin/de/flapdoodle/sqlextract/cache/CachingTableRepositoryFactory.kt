@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.cache
 
 import de.flapdoodle.sqlextract.config.ForeignKeys
+import de.flapdoodle.sqlextract.config.PrimaryKeys
 import de.flapdoodle.sqlextract.config.TableFilterList
 import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.db.*
@@ -20,12 +21,13 @@ class CachingTableRepositoryFactory(
         connection: Connection,
         tableFilter: TableFilterList,
         foreignKeys: List<ForeignKeys>,
+        primaryKeys: List<PrimaryKeys>,
         target: Target
     ): TableSet {
-        val hash = hash(connection,tableFilter,foreignKeys)
+        val hash = hash(connection,tableFilter,foreignKeys,primaryKeys)
         val tables = readCachedTables(target.cacheFile("tables.json"), hash)
         if (tables==null) {
-            val tableRepository = fallback.read(connection, tableFilter, foreignKeys, target)
+            val tableRepository = fallback.read(connection, tableFilter, foreignKeys, primaryKeys, target)
             val fallbackTables = tableRepository.all()
             writeCachedTables(fallbackTables, target.cacheFile("tables.json"), hash)
             return TableListSet(fallbackTables)
@@ -52,7 +54,8 @@ class CachingTableRepositoryFactory(
     private fun hash(
         connection: Connection,
         tableFilter: TableFilterList,
-        foreignKeys: List<ForeignKeys>
+        foreignKeys: List<ForeignKeys>,
+        primaryKeys: List<PrimaryKeys>
     ): String {
         val hashBuilder = HashBuilder()
             .append(connection.metaData.url)
@@ -75,6 +78,15 @@ class CachingTableRepositoryFactory(
                             append(it.sourceColumn)
                             append(it.destinationTable.asSQL())
                             append(it.destinationColumn)
+                        }
+                    }
+                append("primaryKeys")
+                primaryKeys.sortedWith(Comparators.orderingFor(PrimaryKeys::schema))
+                    .forEach { fk ->
+                        append(fk.schema)
+                        fk.list.sortedBy { it.first.name+":"+it.second }.forEach {
+                            append(it.first.asSQL())
+                            append(it.second)
                         }
                     }
             }

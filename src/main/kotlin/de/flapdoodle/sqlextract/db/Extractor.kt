@@ -3,6 +3,7 @@ package de.flapdoodle.sqlextract.db
 import de.flapdoodle.sqlextract.cache.CachingTableRepositoryFactory
 import de.flapdoodle.sqlextract.config.Extraction
 import de.flapdoodle.sqlextract.config.ForeignKeys
+import de.flapdoodle.sqlextract.config.PrimaryKeys
 import de.flapdoodle.sqlextract.data.DataSetCollector
 import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.io.IO
@@ -26,7 +27,7 @@ class Extractor(
             Connections.connection(connectionConfig.jdbcUrl, connectionConfig.className, connectionConfig.user, connectionConfig.password, connectionConfig.driver)
 
         connection.use { con ->
-            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, target)
+            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, config.primaryKeys, target)
 
 //            val tableGraph = TableGraph.of(tables.all())
 
@@ -68,6 +69,15 @@ class Extractor(
                 .flatMap { fk -> fk.foreignKeys(it.name) }
 
             it.withForeignKeys(keys)
+        }
+    }
+
+    private fun addPrimaryKeys(primaryKeys: List<PrimaryKeys>): (Table) -> Table {
+        return {
+            val keys = primaryKeys.filter { pk -> pk.schema == it.name.schema }
+                .flatMap { fk -> fk.primaryKeys(it.name) }
+
+            it.withPrimaryKeys(keys)
         }
     }
 

@@ -19,6 +19,10 @@ data class Table(
         return copy(foreignKeys = this.foreignKeys + keys)
     }
 
+    fun withPrimaryKeys(keys: List<PrimaryKey>): Table {
+        return copy(primaryKeys = this.primaryKeys + keys)
+    }
+
     fun destinationTables(): Set<Name> {
         return foreignKeys.map {
             it.destinationTable
