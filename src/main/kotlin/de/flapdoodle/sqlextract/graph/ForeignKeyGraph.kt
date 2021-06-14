@@ -15,6 +15,15 @@ class ForeignKeyGraph(
         return asDot(graph)
     }
 
+    fun filter(tables: Set<Name>): ForeignKeyGraph {
+        val tableVertexs = tables.map { GraphVertex.Table(it) }
+        return ForeignKeyGraph(Graphs.filter(graph) { current ->
+            tableVertexs.any { tableVertex ->
+                Graphs.hasPath(graph, tableVertex, current) || Graphs.hasPath(graph, current, tableVertex)
+            }
+        })
+    }
+
     private fun foreignKeys(table: Name, incoming: Boolean): List<ForeignKey> {
         val current = GraphVertex.Table(table)
         val foreignKeyEdges = if (incoming) {

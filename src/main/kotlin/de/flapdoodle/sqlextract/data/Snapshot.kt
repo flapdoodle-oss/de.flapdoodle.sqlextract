@@ -26,6 +26,10 @@ data class Snapshot(
         }
     }
 
+    fun tableGraphAsDot(): String {
+        return tableGraph.filter(tableByName.keys).asDot()
+    }
+
     private fun insertSQL(table: Table, rows: List<Row>): List<String> {
         val stringBuilder = StringBuilder()
         stringBuilder

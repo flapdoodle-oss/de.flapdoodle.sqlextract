@@ -43,10 +43,15 @@ class Extractor(
             }
 
 
-            val dump = dataSetCollector.snapshot().insertSQL()
+            val snapshot = dataSetCollector.snapshot()
+
+            val dump = snapshot.insertSQL()
             val dumpFile = target.dumpFile()
 
             IO.write(dumpFile, dump.joinToString(separator = "\n\n\n"));
+
+            val dotFile = target.dotFile()
+            IO.write(dotFile, snapshot.tableGraphAsDot())
 //            println("----------------")
 //            dump.forEach {
 //                println(it)
