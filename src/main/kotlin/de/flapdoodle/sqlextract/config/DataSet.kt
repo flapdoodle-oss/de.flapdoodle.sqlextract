@@ -9,9 +9,14 @@ data class DataSet(
         val where: List<String>,
         val limit: Long?,
         val orderBy: List<String>,
-        val constraints: List<Constraint>,
         val backtrack: List<Backtrack>
 ) {
+    init {
+        val multiplyDefinedBacktracks = backtrack.map { it.source to it.destination }
+            .groupBy { it }
+            .filterValues { it.size!=1 }
+        require(multiplyDefinedBacktracks.isEmpty()) {"backtrack defined more than once: ${multiplyDefinedBacktracks.keys} "}
+    }
 
     companion object {
         fun parse(name: String, source: Attributes.Node): DataSet {
@@ -23,10 +28,6 @@ data class DataSet(
             require(table != null) { "table is not set" }
             require(where.isNotEmpty()) { "where is not set: $where" }
 
-            val constraints = source.findValues("constraints", Attributes.Node::class)?.map {
-                Constraint.parse(it)
-            }
-
             val backtrack = source.findValues("backtrack", Attributes.Node::class)?.map {
                 Backtrack.parse(it)
             }
@@ -37,7 +38,6 @@ data class DataSet(
                 where = where,
                 limit = limit,
                 orderBy = orderBy ?: emptyList(),
-                constraints = constraints ?: emptyList(),
                 backtrack = backtrack ?: emptyList()
             )
         }

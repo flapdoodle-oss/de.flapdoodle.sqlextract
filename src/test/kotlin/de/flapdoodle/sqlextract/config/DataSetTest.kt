@@ -20,15 +20,15 @@ internal class DataSetTest {
             where = listOf("ID = '123'"),
             limit = 10,
             orderBy = listOf("ID"),
-            constraints = listOf(
-                Constraint(
-                    table = Name("B","PUBLIC"),
+            backtrack = listOf(
+                Backtrack(
+                    source = Name("B","PUBLIC"),
+                    destination = Name("A","PUBLIC"),
                     where = listOf("NAME is not null"),
                     limit = 20,
                     orderBy = listOf("NAME desc")
                 )
-            ),
-            backtrack = emptyList()
+            )
         )
 
         assertThat(result).isEqualTo(expected)
