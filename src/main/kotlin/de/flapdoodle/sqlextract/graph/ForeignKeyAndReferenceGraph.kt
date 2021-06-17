@@ -73,7 +73,7 @@ class ForeignKeyAndReferenceGraph(
                 println("---------------------------------")
             }
 
-            verticesAndEdges.vertices().filterIsInstance<GraphVertex.Table>().map { it.table }
+            verticesAndEdges.vertices().map { it }
         }
     }
 
