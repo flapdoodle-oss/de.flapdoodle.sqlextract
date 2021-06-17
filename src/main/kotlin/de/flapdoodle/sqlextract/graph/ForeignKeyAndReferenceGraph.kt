@@ -55,6 +55,11 @@ class ForeignKeyAndReferenceGraph(
         return foreignKeys(table, false).map { it.destinationTable }.toSet()
     }
 
+    fun isConnected(source: Name, destination: Name): Boolean {
+        return foreignKeysTo(destination).contains(source) || referencesTo(destination).contains(source)
+    }
+
+
     fun tablesInInsertOrder(): List<Name> {
 //        val loops = Graphs.loopsOf(graph)
 ////        require(loops.isEmpty()) {"loops not supported: $loops"}

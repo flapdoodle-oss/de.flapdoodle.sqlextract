@@ -20,7 +20,14 @@ class DataSetCollector(
     private val tableRepository = TableListRepository(tableSet.all())
 
     fun collect(dataSet: DataSet) {
-        tableGraph
+        val invalidBacktracks = dataSet.backtrack.filter {
+            !tableGraph.isConnected(it.source, it.destination)
+        }
+
+        require(invalidBacktracks.isEmpty()) {
+            "backtracks not valid: $invalidBacktracks"
+        }
+
         val table = tableRepository.get(dataSet.table)
         val backtrackOverride = BacktrackOverride(dataSet.backtrack)
 
