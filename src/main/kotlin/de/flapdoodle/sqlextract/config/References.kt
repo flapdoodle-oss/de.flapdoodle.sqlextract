@@ -54,20 +54,14 @@ data class References(
         }
 
         private fun reference(schema: String, source: String, destination: String): Reference {
-            val s = tableAndColumn(schema, source)
-            val d = tableAndColumn(schema, destination)
+            val s = TableAndColumns.parse(schema, source)
+            val d = TableAndColumns.parse(schema, destination)
             return Reference(
                 sourceTable = s.first,
                 sourceColumn = s.second,
                 destinationTable = d.first,
                 destinationColumn = d.second
             )
-        }
-
-        private fun tableAndColumn(schema: String, value: String): Pair<Name, String> {
-            val idx = value.indexOf(':')
-            require(idx != -1) { "wrong format: $value != <SCHEMA.TABLE:COLUMN>" }
-            return Name(value.substring(0, idx), schema) to value.substring(idx + 1)
         }
     }
 }

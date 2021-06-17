@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.cache
 
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.config.PrimaryKeys
+import de.flapdoodle.sqlextract.config.References
 import de.flapdoodle.sqlextract.config.TableFilterList
 import de.flapdoodle.sqlextract.data.Target
 import de.flapdoodle.sqlextract.db.*
@@ -22,12 +23,13 @@ class CachingTableRepositoryFactory(
         tableFilter: TableFilterList,
         foreignKeys: List<ForeignKeys>,
         primaryKeys: List<PrimaryKeys>,
+        references: List<References>,
         target: Target
     ): TableSet {
-        val hash = hash(connection,tableFilter,foreignKeys,primaryKeys)
+        val hash = hash(connection,tableFilter,foreignKeys,primaryKeys,references)
         val tables = readCachedTables(target.cacheFile("tables.json"), hash)
         if (tables==null) {
-            val tableRepository = fallback.read(connection, tableFilter, foreignKeys, primaryKeys, target)
+            val tableRepository = fallback.read(connection, tableFilter, foreignKeys, primaryKeys, references, target)
             val fallbackTables = tableRepository.all()
             writeCachedTables(fallbackTables, target.cacheFile("tables.json"), hash)
             return TableListSet(fallbackTables)
@@ -55,7 +57,8 @@ class CachingTableRepositoryFactory(
         connection: Connection,
         tableFilter: TableFilterList,
         foreignKeys: List<ForeignKeys>,
-        primaryKeys: List<PrimaryKeys>
+        primaryKeys: List<PrimaryKeys>,
+        references: List<References>
     ): String {
         val hashBuilder = HashBuilder()
             .append(connection.metaData.url)
@@ -87,6 +90,17 @@ class CachingTableRepositoryFactory(
                         fk.list.sortedBy { it.first.name+":"+it.second }.forEach {
                             append(it.first.asSQL())
                             append(it.second)
+                        }
+                    }
+                append("references")
+                references.sortedWith(Comparators.orderingFor(References::schema))
+                    .forEach { ref ->
+                        append(ref.schema)
+                        ref.list.sortedWith(Reference.Comparator).forEach {
+                            append(it.sourceTable.asSQL())
+                            append(it.sourceColumn)
+                            append(it.destinationTable.asSQL())
+                            append(it.destinationColumn)
                         }
                     }
             }

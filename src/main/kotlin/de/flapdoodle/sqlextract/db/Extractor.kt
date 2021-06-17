@@ -27,7 +27,7 @@ class Extractor(
             Connections.connection(connectionConfig.jdbcUrl, connectionConfig.className, connectionConfig.user, connectionConfig.password, connectionConfig.driver)
 
         connection.use { con ->
-            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, config.primaryKeys, target)
+            val tables = tableRepositoryFactory.read(connection, config.tableFilter, config.foreignKeys, config.primaryKeys, config.references, target)
 
 //            val tableGraph = TableGraph.of(tables.all())
 

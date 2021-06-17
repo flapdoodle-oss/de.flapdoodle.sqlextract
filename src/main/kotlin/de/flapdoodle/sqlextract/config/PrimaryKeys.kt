@@ -41,16 +41,10 @@ data class PrimaryKeys(
 
         fun parse(schema: String, src: List<String>?): List<Pair<Name, String>> {
             val mapped = (src?: emptyList()).map {
-                tableAndColumn(schema, it)
+                TableAndColumns.parse(schema, it)
             }
 
             return mapped
-        }
-
-        private fun tableAndColumn(schema: String, value: String): Pair<Name, String> {
-            val idx = value.indexOf(':')
-            require(idx != -1) { "wrong format: $value != <SCHEMA.TABLE:COLUMN>" }
-            return Name(value.substring(0, idx), schema) to value.substring(idx + 1)
         }
     }
 }

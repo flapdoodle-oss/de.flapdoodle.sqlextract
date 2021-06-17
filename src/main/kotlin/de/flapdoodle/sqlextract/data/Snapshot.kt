@@ -2,10 +2,10 @@ package de.flapdoodle.sqlextract.data
 
 import de.flapdoodle.sqlextract.cache.PersistedTables
 import de.flapdoodle.sqlextract.db.Table
-import de.flapdoodle.sqlextract.graph.ForeignKeyGraph
+import de.flapdoodle.sqlextract.graph.ForeignKeyAndReferenceGraph
 
 data class Snapshot(
-    val tableGraph: ForeignKeyGraph,
+    val tableGraph: ForeignKeyAndReferenceGraph,
     val tableMap: Map<Table, List<Row>>
 ) {
     private val rowsByTableName = tableMap.mapKeys { it.key.name }

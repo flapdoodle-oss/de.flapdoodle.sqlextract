@@ -1,5 +1,6 @@
 package de.flapdoodle.sqlextract.config
 
+import de.flapdoodle.sqlextract.db.Reference
 import de.flapdoodle.sqlextract.filetypes.Attributes
 import de.flapdoodle.sqlextract.io.IO
 import java.nio.file.Path

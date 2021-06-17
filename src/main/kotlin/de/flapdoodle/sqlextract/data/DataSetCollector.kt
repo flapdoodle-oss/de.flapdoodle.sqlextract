@@ -6,7 +6,7 @@ import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.db.TableListRepository
 import de.flapdoodle.sqlextract.db.TableSet
-import de.flapdoodle.sqlextract.graph.ForeignKeyGraph
+import de.flapdoodle.sqlextract.graph.ForeignKeyAndReferenceGraph
 import de.flapdoodle.sqlextract.jdbc.andCloseAfterUse
 import de.flapdoodle.sqlextract.jdbc.query
 import java.sql.Connection
@@ -15,7 +15,7 @@ class DataSetCollector(
     val connection: Connection,
     val tableSet: TableSet
 ) {
-    private val tableGraph = ForeignKeyGraph.of(tableSet.all())
+    private val tableGraph = ForeignKeyAndReferenceGraph.of(tableSet.all())
     private val rowCollector = RowCollector()
     private val tableRepository = TableListRepository(tableSet.all())
 
@@ -80,12 +80,20 @@ class DataSetCollector(
             println("collect $query with $parameters (limit=$limit) -> ${newRows.size} (missing: ${missingRows.size})")
 
             if (missingRows.isNotEmpty()) {
-                val tablesPointingFrom = tableGraph.referencesTo(table.name)
-                val validBacktrackTables = tablesPointingFrom.filter {
+                val sourceTables = tableGraph.foreignKeysTo(table.name)
+                val sourceReferenceTables = tableGraph.referencesTo(table.name)
+
+                val validFKBacktrackTables = sourceTables.filter {
                     direction==Direction.Backtrack
                             || mode==CollectionMode.ForeignKeysAndBacktrack
                             || backtrackOverride.find(it, table.name)!=null
                 }
+
+                val validRefBacktrackTables = sourceReferenceTables.filter {
+                    backtrackOverride.find(it, table.name)!=null
+                }
+
+                val validBacktrackTables=validFKBacktrackTables+validRefBacktrackTables.toSet()
 
                 validBacktrackTables.forEach { from ->
                     val fromTable = tableRepository.get(from)
@@ -99,7 +107,7 @@ class DataSetCollector(
                     ) { row -> constraintsOf(fromTable, row) }
                 }
 
-                val tablesPointingTo = tableGraph.referencesFrom(table.name)
+                val tablesPointingTo = tableGraph.foreignKeysFrom(table.name)
                 tablesPointingTo.forEach { to ->
                     val toTable = tableRepository.get(to)
                     collect(

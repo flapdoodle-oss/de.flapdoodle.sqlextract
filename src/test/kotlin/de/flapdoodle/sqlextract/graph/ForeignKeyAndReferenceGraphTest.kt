@@ -6,7 +6,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.sql.JDBCType
 
-internal class ForeignKeyGraphTest {
+internal class ForeignKeyAndReferenceGraphTest {
     @Test
     fun graphForTable() {
         val root = TableBuilder("ROOT")
@@ -44,7 +44,7 @@ internal class ForeignKeyGraphTest {
 
         val tables = listOf(root, root_ref, main, direct_ref, otherRoot, other)
 
-        val testee = ForeignKeyGraph.of(tables)
+        val testee = ForeignKeyAndReferenceGraph.of(tables)
 
 //        println(testee.asDot())
 //        testee.dumpDebugInfo()
@@ -53,13 +53,13 @@ internal class ForeignKeyGraphTest {
 //
 //        println(filtered.asDot())
 //
-        assertThat(testee.referencesTo(Name("MAIN", "PUBLIC")))
+        assertThat(testee.foreignKeysTo(Name("MAIN", "PUBLIC")))
             .containsExactlyInAnyOrder(root.name)
 
-        assertThat(testee.referencesFrom(Name("MAIN", "PUBLIC")))
+        assertThat(testee.foreignKeysFrom(Name("MAIN", "PUBLIC")))
             .containsExactlyInAnyOrder(direct_ref.name)
 
-        assertThat(testee.referencesFrom(Name("ROOT", "PUBLIC")))
+        assertThat(testee.foreignKeysFrom(Name("ROOT", "PUBLIC")))
             .containsExactlyInAnyOrder(main.name, direct_ref.name, root_ref.name)
     }
 
@@ -93,11 +93,11 @@ internal class ForeignKeyGraphTest {
 
         val tables = listOf(card,service,history,user)
 
-        val testee = ForeignKeyGraph.of(tables)
+        val testee = ForeignKeyAndReferenceGraph.of(tables)
 
-        assertThat(testee.referencesTo(card.name)).isEmpty()
+        assertThat(testee.foreignKeysTo(card.name)).isEmpty()
 
-        assertThat(testee.referencesFrom(card.name))
+        assertThat(testee.foreignKeysFrom(card.name))
             .containsExactlyInAnyOrder(user.name, history.name)
     }
 }

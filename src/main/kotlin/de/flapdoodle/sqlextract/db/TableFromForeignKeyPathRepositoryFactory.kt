@@ -2,6 +2,7 @@ package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.config.ForeignKeys
 import de.flapdoodle.sqlextract.config.PrimaryKeys
+import de.flapdoodle.sqlextract.config.References
 import de.flapdoodle.sqlextract.config.TableFilterList
 import de.flapdoodle.sqlextract.data.Target
 import java.sql.Connection
@@ -15,12 +16,18 @@ class TableFromForeignKeyPathRepositoryFactory(
         tableFilter: TableFilterList,
         foreignKeys: List<ForeignKeys>,
         primaryKeys: List<PrimaryKeys>,
+        references: List<References>,
         target: Target
     ): Tables {
         val tableResolver = CachingTableResolverWrapper(
             tableResolverFactory(connection)
         )
-            .withPostProcess(join(addForeignKeys(foreignKeys),addPrimaryKeys(primaryKeys)))
+            .withPostProcess(
+                join(
+                    addForeignKeys(foreignKeys),
+                    addPrimaryKeys(primaryKeys),
+                    addReferences(references)
+                ))
             .withMonitor()
 
         val tableNames = tableNamesFactory.tableNames(connection)
@@ -30,9 +37,13 @@ class TableFromForeignKeyPathRepositoryFactory(
         return Tables.empty().add(includedTables, tableResolver)
     }
 
-    private fun join(first: (Table) -> Table, second: (Table) -> Table): (Table) -> Table {
+    private fun join(
+        first: (Table) -> Table,
+        second: (Table) -> Table,
+        third: (Table) -> Table,
+    ): (Table) -> Table {
         return {
-            second(first(it))
+            third(second(first(it)))
         }
     }
     private fun addForeignKeys(foreignKeys: List<ForeignKeys>): (Table) -> Table {
@@ -50,6 +61,15 @@ class TableFromForeignKeyPathRepositoryFactory(
                 .flatMap { fk -> fk.primaryKeys(it.name) }
 
             it.withPrimaryKeys(keys)
+        }
+    }
+
+    private fun addReferences(references: List<References>): (Table) -> Table {
+        return {
+            val ref = references.filter { pk -> pk.schema == it.name.schema }
+                .flatMap { fk -> fk.references(it.name) }
+
+            it.withReferences(ref)
         }
     }
 }
