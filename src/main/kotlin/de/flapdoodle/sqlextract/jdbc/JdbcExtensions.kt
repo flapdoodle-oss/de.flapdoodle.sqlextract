@@ -16,7 +16,7 @@ fun Connection.query(resultSetFactory: Connection.() -> ResultSet): ResultSetAda
 fun DatabaseMetaData.table(name: String, schema: String?): JdbcTable {
     val ret = query { getTables(null, schema, name, arrayOf("TABLE")) }
         .map(JdbcTable.rowMapper())
-    require(ret.size == 1) { "more or less then one entry: $ret" }
+    require(ret.size == 1) { "more or less then one entry for $name (schema: $schema): $ret" }
     return ret.single()
 }
 
