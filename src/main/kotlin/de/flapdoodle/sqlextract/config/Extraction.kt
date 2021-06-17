@@ -9,6 +9,7 @@ data class Extraction(
     val dataSets: List<DataSet>,
     val foreignKeys: List<ForeignKeys>,
     val primaryKeys: List<PrimaryKeys>,
+    val references: List<References>,
     val tableFilter: TableFilterList
 ) {
     companion object {
@@ -22,8 +23,10 @@ data class Extraction(
             val tableFilter = TableFilterList.parse(source.find("tables", Attributes.Node::class))
 
             val foreignKeys = ForeignKeys.parse(source.find("foreignKeys", Attributes.Node::class))
-            
+
             val primaryKeys = PrimaryKeys.parse(source.find("primaryKeys", Attributes.Node::class))
+
+            val references = References.parse(source.find("references", Attributes.Node::class))
 
             val dataSetConfigs = source.find("dataset", Attributes.Node::class)
 
@@ -37,6 +40,7 @@ data class Extraction(
                 databaseConnection = databaseConnection,
                 foreignKeys = foreignKeys,
                 primaryKeys = primaryKeys,
+                references = references,
                 dataSets = dataSets,
                 tableFilter = tableFilter
             )

@@ -1,24 +1,23 @@
 package de.flapdoodle.sqlextract.config
 
-import de.flapdoodle.sqlextract.db.ForeignKey
 import de.flapdoodle.sqlextract.db.Name
+import de.flapdoodle.sqlextract.db.Reference
 import de.flapdoodle.sqlextract.filetypes.Attributes
 
-// TODO foreign key points to primary key - must enforce this
-data class ForeignKeys(
+data class References(
     val name: String,
     val schema: String,
-    val list: List<ForeignKey>
+    val list: List<Reference>
 ) {
 
-    fun foreignKeys(tableName: Name): List<ForeignKey> {
+    fun references(tableName: Name): List<Reference> {
         return list.filter {
             it.sourceTable == tableName
         }
     }
 
     companion object {
-        fun parse(source: Attributes.Node?): List<ForeignKeys> {
+        fun parse(source: Attributes.Node?): List<References> {
             val foreignKeys = source?.nodeKeys()?.map {
                 parse(it, source.get(it, Attributes.Node::class))
             }
@@ -26,21 +25,21 @@ data class ForeignKeys(
             return foreignKeys ?: emptyList()
         }
 
-        fun parse(name: String, source: Attributes.Node): ForeignKeys {
+        fun parse(name: String, source: Attributes.Node): References {
             val schema = source.values("schema", String::class).singleOrNull()
             require(schema != null) { "schema not defined" }
 
-            val foreignKeyList = parse(schema, source.findValues("keys", List::class))
+            val referenceList = parse(schema, source.findValues("keys", List::class))
 
 
-            return ForeignKeys(
+            return References(
                 name = name,
                 schema = schema,
-                list = foreignKeyList
+                list = referenceList
             )
         }
 
-        fun parse(schema: String, table: List<List<*>>?): List<ForeignKey> {
+        fun parse(schema: String, table: List<List<*>>?): List<Reference> {
             val src: List<List<*>> = (table ?: emptyList())
             val mapped = src.map {
                 require(it.size == 2) { "wrong format, must contain source and destination" }
@@ -48,16 +47,16 @@ data class ForeignKeys(
                 require(it[1] is String) { "can not handle first part of: $it" }
                 val source: String = it[0] as String
                 val destination: String = it[1] as String
-                foreignKey(schema, source, destination)
+                reference(schema, source, destination)
             }
 
             return mapped
         }
 
-        private fun foreignKey(schema: String, source: String, destination: String): ForeignKey {
+        private fun reference(schema: String, source: String, destination: String): Reference {
             val s = tableAndColumn(schema, source)
             val d = tableAndColumn(schema, destination)
-            return ForeignKey(
+            return Reference(
                 sourceTable = s.first,
                 sourceColumn = s.second,
                 destinationTable = d.first,
