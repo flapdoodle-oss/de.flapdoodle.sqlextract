@@ -176,8 +176,10 @@ class DataSetCollector(
 
     private fun constraintsOf(from: Table, to: TableRow): List<Pair<String, Any?>> {
         val fk = from.foreignKeys.filter { it.destinationTable == to.table.name }
-        require(fk.isNotEmpty()) { "expected foreign keys to ${to.table} from ${from.name}" }
-        return fk.map {
+        val ref = from.references.filter { it.destinationTable == to.table.name }
+        val all = (fk+ref).toSet()
+        require(all.isNotEmpty()) { "expected connections to ${to.table} from ${from.name}" }
+        return all.map {
             val value = to.values[it.destinationColumn]
             if (value != null) {
                 "${it.sourceColumn} = ?" to value
@@ -189,8 +191,10 @@ class DataSetCollector(
 
     private fun constraintsOf(from: TableRow, to: Table): List<Pair<String, Any?>> {
         val fk = from.table.foreignKeys.filter { it.destinationTable == to.name }
-        require(fk.isNotEmpty()) { "expected foreign keys to ${from.table} from ${to.name}" }
-        return fk.map {
+        val ref = from.table.references.filter { it.destinationTable == to.name }
+        val all = (fk+ref).toSet()
+        require(all.isNotEmpty()) { "expected foreign keys to ${from.table} from ${to.name}" }
+        return all.map {
             val value = from.values[it.sourceColumn]
             if (value != null) {
                 "${it.destinationColumn} = ?" to value
