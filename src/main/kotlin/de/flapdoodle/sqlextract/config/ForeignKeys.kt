@@ -68,6 +68,8 @@ data class ForeignKeys(
         private fun tableAndColumn(schema: String, value: String): Pair<Name, String> {
             val idx = value.indexOf(':')
             require(idx != -1) { "wrong format: $value != <SCHEMA.TABLE:COLUMN>" }
+            require(idx > 0) { "missing SCHEMA.TABLE: $value != <SCHEMA.TABLE:COLUMN>" }
+            require(idx < value.length ) { "missing COLUMN: $value != <SCHEMA.TABLE:COLUMN>" }
             return Name(value.substring(0, idx), schema) to value.substring(idx + 1)
         }
     }
