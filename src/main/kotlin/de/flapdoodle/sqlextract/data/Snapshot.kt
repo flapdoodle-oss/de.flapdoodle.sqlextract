@@ -86,8 +86,8 @@ data class Snapshot(
                 "\n" +
                 tablesVertical(tableMap, rowKey2Number) +
                 "\n" +
-                connections(tableGraph, tableMap) +
-                "\n" +
+//                connections(tableGraph, tableMap) +
+//                "\n" +
                 rowConnections(rowConnections, rowKey2Number) +
                 "\n" +
                 "\n}"
