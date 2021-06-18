@@ -56,7 +56,7 @@ class DataSetCollector(
         backtrackOverride: BacktrackOverride,
         limit: Long?,
     ) {
-        if (!rowCollector.skipQuery(query, parameters)) {
+//        if (!rowCollector.skipQuery(query, parameters)) {
 
             println("---------------------------------------------")
             println("collect $query with $parameters (limit=$limit)")
@@ -129,10 +129,10 @@ class DataSetCollector(
                     }
                 }
             }
-        } else {
-            println("---------------------------------------------")
-            println("skip $query with $parameters (limit=$limit)")
-        }
+//        } else {
+//            println("---------------------------------------------")
+//            println("skip $query with $parameters (limit=$limit)")
+//        }
     }
 
     private fun collect(
