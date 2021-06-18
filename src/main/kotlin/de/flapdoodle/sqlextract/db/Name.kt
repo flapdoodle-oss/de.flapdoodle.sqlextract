@@ -11,6 +11,10 @@ data class Name(
         return "$schema.$name"
     }
 
+    fun asId(): String {
+        return schema+"_"+name
+    }
+
     companion object {
         val Comparator = Comparators.orderingFor(Name::schema)
             .then(Comparators.orderingFor(Name::name))

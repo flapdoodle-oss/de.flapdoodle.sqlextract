@@ -1,6 +1,7 @@
 package de.flapdoodle.sqlextract.data
 
 import de.flapdoodle.sqlextract.cache.PersistedTables
+import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.graph.ForeignKeyAndReferenceGraph
 
@@ -31,12 +32,16 @@ data class Snapshot(
         return tableGraph.asDot()
     }
 
+    fun schemaAsJson(): String {
+        return PersistedTables.asJson(tableMap.keys.toList(),"<no-hash>")
+    }
+
     fun tableGraphAsDot(): String {
         return tableGraph.filter(tableByName.keys).asDot()
     }
 
-    fun schemaAsJson(): String {
-        return PersistedTables.asJson(tableMap.keys.toList(),"<no-hash>")
+    fun tableRowsAsDot(): String {
+        return tableRowsAsDot(tableGraph, tableMap)
     }
 
     private fun insertSQL(table: Table, rows: List<Row>): List<String> {
@@ -66,5 +71,94 @@ data class Snapshot(
 
         else
             "null"
+    }
+
+    /*
+    digraph structs {
+node [shape=plaintext]
+struct1 [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+<TR><TD colspan="3">FOO</TD></TR>
+<TR><TD><b>left</b></TD><TD PORT="f1">mid dle</TD><TD PORT="f2">right</TD></TR>
+</TABLE>>];
+struct2 [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+<TR><TD PORT="f0">one</TD><TD>two</TD></TR>
+</TABLE>>];
+struct3 [label=<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">
+<TR>
+<TD ROWSPAN="3">hello<BR/>world</TD>
+<TD COLSPAN="3">b</TD>
+<TD ROWSPAN="3">g</TD>
+<TD ROWSPAN="3">h</TD>
+</TR>
+<TR>
+<TD>c</TD><TD PORT="here">d</TD><TD>e</TD>
+</TR>
+<TR>
+<TD COLSPAN="3">f</TD>
+</TR>
+</TABLE>>];
+struct1:f1 -> struct2:f0;
+struct1:f2 -> struct3:here;
+}
+     */
+    private fun tableRowsAsDot(
+        tableGraph: ForeignKeyAndReferenceGraph,
+        tableMap: Map<Table, List<Row>>
+    ): String {
+        return "digraph structs {\n" +
+                "node [shape=plaintext]\n"+
+                "\n"+
+                rows(tableMap)+
+                "\n"+
+                connections(tableGraph, tableMap) +
+                "\n}"
+    }
+
+    private fun connections(
+        tableGraph: ForeignKeyAndReferenceGraph,
+        tableMap: Map<Table, List<Row>>
+    ): String {
+        val tableNames = tableMap.keys.map { it.name }
+        return tableNames.flatMap {
+            val fk = tableGraph.foreignKeys(it, true)
+            val ref = tableGraph.references(it, true)
+            val all = fk + ref
+            all.filter { tableNames.contains(it.sourceTable) }
+        }.map {
+            "${it.sourceTable.asId()}:${it.sourceColumn} -> ${it.destinationTable.asId()}:${it.destinationColumn};"
+        }.joinToString("\n")
+    }
+
+    private fun rows(tableMap: Map<Table, List<Row>>): String {
+        return tableMap.map { (table, rows) ->
+            "\"${table.name.asId()}\" [label=<${rowsAsHtmlTable(table, rows)}>];"
+        }.joinToString(separator = "\n\n")
+    }
+
+    private fun rowsAsHtmlTable(table: Table, rows: List<Row>): String {
+        val columnNames = table.columns.map {
+            "<TD PORT=\"${it.name}\">${it.name}</TD>"
+        }
+
+        val header="<TR><TD COLSPAN=\"${columnNames.size}\">${table.name.asSQL()}</TD></TR>\n"
+
+        val rowsAsHtml = rows.map { row ->
+            val rowAsHtml = table.columns.map { col ->
+                val value = row.values[col.name]
+                val valueAsSql = asSql(value)
+                "<TD>$valueAsSql</TD>"
+            }.joinToString()
+
+            "<TR>$rowAsHtml</TR>"
+        }.joinToString(separator = "\n")
+
+        return "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n" +
+                header +
+                "<TR>\n${columnNames.joinToString(separator = "\n")}\n</TR>\n"+
+                rowsAsHtml+
+                "\n</TABLE>"
     }
 }

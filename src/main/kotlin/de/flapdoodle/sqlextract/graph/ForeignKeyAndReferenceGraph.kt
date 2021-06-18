@@ -33,12 +33,12 @@ class ForeignKeyAndReferenceGraph(
         return edges
     }
 
-    private fun foreignKeys(table: Name, incoming: Boolean): List<ForeignKey> {
+    fun foreignKeys(table: Name, incoming: Boolean): List<ForeignKey> {
         return edges(table, incoming).filterIsInstance<Edge.ForeignKeyBetweenColumn>()
             .map { it.foreignKey }
     }
 
-    private fun references(table: Name, incoming: Boolean): List<Reference> {
+    fun references(table: Name, incoming: Boolean): List<Reference> {
         return edges(table, incoming).filterIsInstance<Edge.ReferenceBetweenColumn>()
             .map { it.reference }
     }
@@ -84,18 +84,10 @@ class ForeignKeyAndReferenceGraph(
 
 
     companion object {
-        fun Name.asId(): String {
-            return schema+"_"+name
-        }
-
-        fun Name.simpleName(): String {
-            return schema+"."+name
-        }
-
         private fun asDot(graph: DefaultDirectedGraph<Name, Edge>): String {
             val dotContent = GraphAsDot.builder<Name> { it.asId() }
-                .nodeAttributes { mapOf("label" to it.simpleName()) }
-                .edgeAttributes { start, end -> mapOf("label" to start.simpleName() + " - " + end.simpleName()) }
+                .nodeAttributes { mapOf("label" to it.asSQL()) }
+                .edgeAttributes { start, end -> mapOf("label" to start.asSQL() + " - " + end.asSQL()) }
                 .label("tablegraph")
                 .build()
                 .asDot(graph)

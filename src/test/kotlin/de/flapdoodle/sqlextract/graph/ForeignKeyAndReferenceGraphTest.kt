@@ -20,17 +20,21 @@ internal class ForeignKeyAndReferenceGraphTest {
 
         val root_ref = TableBuilder("ROOT_REF")
             .column("ID", JDBCType.INTEGER, false)
+            .primaryKey("ID","PK_ID")
             .build()
 
         val main = TableBuilder("MAIN")
             .column("ID", JDBCType.INTEGER)
             .column("DIRECT_REF_ID", JDBCType.INTEGER)
             .foreignKey("DIRECT_REF_ID", "DIRECT_REF", "ID")
+            .primaryKey("ID","PK_ID")
             .build()
 
         val direct_ref = TableBuilder("DIRECT_REF")
             .column("ID", JDBCType.INTEGER, false)
             .column("NAME", JDBCType.VARCHAR, false)
+            .primaryKey("ID","PK_ID")
+            .primaryKey("NAME","PK_NAME")
             .build()
 
         val otherRoot = TableBuilder("OTHER_ROOT")
@@ -40,6 +44,7 @@ internal class ForeignKeyAndReferenceGraphTest {
 
         val other = TableBuilder("OTHER")
             .column("ID", JDBCType.INTEGER)
+            .primaryKey("ID","PK_ID")
             .build()
 
         val tables = listOf(root, root_ref, main, direct_ref, otherRoot, other)
@@ -68,17 +73,21 @@ internal class ForeignKeyAndReferenceGraphTest {
 
         val service = TableBuilder("SERVICE")
             .column("ID", JDBCType.INTEGER)
+            .primaryKey("ID","PK_ID")
             .build()
 
         val history = TableBuilder("HISTORY")
             .column("ID", JDBCType.INTEGER)
             .column("SERVICE_ID", JDBCType.INTEGER)
             .foreignKey("SERVICE_ID", "SERVICE", "ID")
+            .primaryKey("ID","PK_ID")
             .build()
 
         val user = TableBuilder("USER")
             .column("ID", JDBCType.INTEGER)
             .column("MANDANT_ID", JDBCType.INTEGER)
+            .primaryKey("ID","PK_ID")
+            .primaryKey("MANDANT_ID","PK_MANDANT")
             .build()
 
         val card = TableBuilder("CARD")

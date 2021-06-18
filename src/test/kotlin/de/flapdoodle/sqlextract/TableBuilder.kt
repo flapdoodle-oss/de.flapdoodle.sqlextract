@@ -1,15 +1,13 @@
 package de.flapdoodle.sqlextract
 
-import de.flapdoodle.sqlextract.db.Column
-import de.flapdoodle.sqlextract.db.ForeignKey
-import de.flapdoodle.sqlextract.db.Name
-import de.flapdoodle.sqlextract.db.Table
+import de.flapdoodle.sqlextract.db.*
 import java.sql.JDBCType
 
 class TableBuilder(val name: String, val schema: String = "PUBLIC") {
 
     var columns = emptyList<Column>()
     var foreignKeys = emptyList<ForeignKey>()
+    var primaryKeys = emptyList<PrimaryKey>()
 
     fun column(
         name: String,
@@ -29,11 +27,20 @@ class TableBuilder(val name: String, val schema: String = "PUBLIC") {
         return this
     }
 
+    fun primaryKey(
+        column: String,
+        name: String
+    ): TableBuilder {
+        primaryKeys = primaryKeys + PrimaryKey(column, name)
+        return this
+    }
+
     fun build(): Table {
         return Table(
             name = Name(name, schema),
             columns = columns.toSet(),
-            foreignKeys = foreignKeys.toSet()
+            foreignKeys = foreignKeys.toSet(),
+            primaryKeys = primaryKeys.toSet()
         )
     }
 

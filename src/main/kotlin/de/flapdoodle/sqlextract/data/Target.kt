@@ -19,6 +19,10 @@ data class Target(val path: Path) {
         return path.resolve("tables.dot")
     }
 
+    fun tableRowsDotFile(): Path {
+        return path.resolve("tableRows.dot")
+    }
+
     fun schemaDotFile(): Path {
         return path.resolve("schema.dot")
     }
