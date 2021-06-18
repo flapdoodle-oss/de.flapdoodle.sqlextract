@@ -33,7 +33,7 @@ data class Snapshot(
     }
 
     fun schemaAsJson(): String {
-        return PersistedTables.asJson(tableByName.values.toList(),"<no-hash>")
+        return PersistedTables.asJson(tableByName.values.toList(), "<no-hash>")
     }
 
     fun tableGraphAsDot(): String {
@@ -68,7 +68,6 @@ data class Snapshot(
                 is String -> "'$value'"
                 else -> value.toString()
             }
-
         else
             "null"
     }
@@ -77,26 +76,30 @@ data class Snapshot(
         tableGraph: ForeignKeyAndReferenceGraph,
         tableMap: Map<Table, List<TableRow>>
     ): String {
+        val rowKey2Number: Map<RowKey, String> = tableMap.values
+            .flatMap { list -> list.map { it.key } }
+            .mapIndexed { index, rowKey -> rowKey to "row_$index" }
+            .toMap()
+
         return "digraph structs {\n" +
-                "node [shape=plaintext]\n"+
-                "\n"+
-                tablesVertical(tableMap)+
-                "\n"+
+                "node [shape=plaintext]\n" +
+                "\n" +
+                tablesVertical(tableMap, rowKey2Number) +
+                "\n" +
                 connections(tableGraph, tableMap) +
+                "\n" +
+                rowConnections(rowConnections, rowKey2Number) +
+                "\n" +
                 "\n}"
     }
 
-    private fun tableRowsAsDot(
-        tableGraph: ForeignKeyAndReferenceGraph,
-        tableMap: Map<Table, List<TableRow>>
+    private fun rowConnections(
+        rowConnections: Set<Pair<RowKey, RowKey>>,
+        rowKey2Number: Map<RowKey, String>
     ): String {
-        return "digraph structs {\n" +
-                "node [shape=plaintext]\n"+
-                "\n"+
-                tables(tableMap)+
-                "\n"+
-                connections(tableGraph, tableMap) +
-                "\n}"
+        return rowConnections.map {
+            "${it.first.table.name.asId()}:${rowKey2Number[it.first]} -> ${it.second.table.name.asId()}:${rowKey2Number[it.second]};"
+        }.joinToString(separator = "\n")
     }
 
     private fun connections(
@@ -114,57 +117,32 @@ data class Snapshot(
         }.joinToString("\n")
     }
 
-    private fun tablesVertical(tableMap: Map<Table, List<TableRow>>): String {
+    private fun tablesVertical(tableMap: Map<Table, List<TableRow>>, rowKey2Number: Map<RowKey, String>): String {
         return tableMap.map { (table, rows) ->
-            "\"${table.name.asId()}\" [label=<${rowsAsVerticalHtmlTable(table, rows)}>];"
+            "\"${table.name.asId()}\" [label=<${rowsAsVerticalHtmlTable(table, rows, rowKey2Number)}>];"
         }.joinToString(separator = "\n\n")
     }
 
-    private fun tables(tableMap: Map<Table, List<TableRow>>): String {
-        return tableMap.map { (table, rows) ->
-            "\"${table.name.asId()}\" [label=<${rowsAsHtmlTable(table, rows)}>];"
-        }.joinToString(separator = "\n\n")
-    }
+    private fun rowsAsVerticalHtmlTable(
+        table: Table,
+        rows: List<TableRow>,
+        rowKey2Number: Map<RowKey, String>
+    ): String {
+        val header = "<TR><TD COLSPAN=\"${rows.size + 1}\">${table.name.asSQL()}</TD></TR>\n"
 
-    private fun rowsAsVerticalHtmlTable(table: Table, rows: List<TableRow>): String {
-        val header="<TR><TD COLSPAN=\"${rows.size+1}\">${table.name.asSQL()}</TD></TR>\n"
-
-        val rowsAsHtml = table.columns.map { col ->
+        val rowsAsHtml = table.columns.mapIndexed { index, col ->
             val rowAsHtml = rows.map { row ->
                 val value = row.values[col.name]
                 val valueAsSql = asSql(value)
-                "<TD>$valueAsSql</TD>"
+                val portAttr = if (index == 0) " PORT=\"${rowKey2Number[row.key]}\"" else ""
+                "<TD $portAttr>$valueAsSql</TD>"
             }.joinToString()
             "<TR><TD PORT=\"${col.name}\">${col.name}</TD>$rowAsHtml</TR>"
         }.joinToString(separator = "\n")
 
         return "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n" +
                 header +
-                rowsAsHtml+
-                "\n</TABLE>"
-    }
-
-    private fun rowsAsHtmlTable(table: Table, rows: List<TableRow>): String {
-        val columnNames = table.columns.map {
-            "<TD PORT=\"${it.name}\">${it.name}</TD>"
-        }
-
-        val header="<TR><TD COLSPAN=\"${columnNames.size}\">${table.name.asSQL()}</TD></TR>\n"
-
-        val rowsAsHtml = rows.map { row ->
-            val rowAsHtml = table.columns.map { col ->
-                val value = row.values[col.name]
-                val valueAsSql = asSql(value)
-                "<TD>$valueAsSql</TD>"
-            }.joinToString()
-
-            "<TR>$rowAsHtml</TR>"
-        }.joinToString(separator = "\n")
-
-        return "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n" +
-                header +
-                "<TR>\n${columnNames.joinToString(separator = "\n")}\n</TR>\n"+
-                rowsAsHtml+
+                rowsAsHtml +
                 "\n</TABLE>"
     }
 }

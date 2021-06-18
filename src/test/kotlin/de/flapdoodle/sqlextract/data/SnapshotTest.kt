@@ -49,7 +49,7 @@ internal class SnapshotTest {
                 TableRow(card, RowKey(card, mapOf("ID" to 1)), emptyMap()),
                 TableRow(user, RowKey(user, mapOf("ID" to 2)), emptyMap()),
             ),
-            rowConnections = setOf(RowKey(user, mapOf("ID" to 1)) to RowKey(card, mapOf("ID" to 1)))
+            rowConnections = setOf(RowKey(user, mapOf("ID" to 2)) to RowKey(card, mapOf("ID" to 1)))
         )
 
         println("--------------------")
