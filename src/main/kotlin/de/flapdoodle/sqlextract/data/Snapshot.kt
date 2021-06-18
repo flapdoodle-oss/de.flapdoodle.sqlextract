@@ -1,7 +1,6 @@
 package de.flapdoodle.sqlextract.data
 
 import de.flapdoodle.sqlextract.cache.PersistedTables
-import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.graph.ForeignKeyAndReferenceGraph
 
@@ -41,7 +40,7 @@ data class Snapshot(
     }
 
     fun tableRowsAsDot(): String {
-        return tableRowsAsDot(tableGraph, tableMap)
+        return tableRowsVerticalAsDot(tableGraph, tableMap)
     }
 
     private fun insertSQL(table: Table, rows: List<Row>): List<String> {
@@ -104,6 +103,20 @@ struct1:f1 -> struct2:f0;
 struct1:f2 -> struct3:here;
 }
      */
+
+    private fun tableRowsVerticalAsDot(
+        tableGraph: ForeignKeyAndReferenceGraph,
+        tableMap: Map<Table, List<Row>>
+    ): String {
+        return "digraph structs {\n" +
+                "node [shape=plaintext]\n"+
+                "\n"+
+                tablesVertical(tableMap)+
+                "\n"+
+                connections(tableGraph, tableMap) +
+                "\n}"
+    }
+
     private fun tableRowsAsDot(
         tableGraph: ForeignKeyAndReferenceGraph,
         tableMap: Map<Table, List<Row>>
@@ -111,7 +124,7 @@ struct1:f2 -> struct3:here;
         return "digraph structs {\n" +
                 "node [shape=plaintext]\n"+
                 "\n"+
-                rows(tableMap)+
+                tables(tableMap)+
                 "\n"+
                 connections(tableGraph, tableMap) +
                 "\n}"
@@ -132,10 +145,34 @@ struct1:f2 -> struct3:here;
         }.joinToString("\n")
     }
 
-    private fun rows(tableMap: Map<Table, List<Row>>): String {
+    private fun tablesVertical(tableMap: Map<Table, List<Row>>): String {
+        return tableMap.map { (table, rows) ->
+            "\"${table.name.asId()}\" [label=<${rowsAsVerticalHtmlTable(table, rows)}>];"
+        }.joinToString(separator = "\n\n")
+    }
+
+    private fun tables(tableMap: Map<Table, List<Row>>): String {
         return tableMap.map { (table, rows) ->
             "\"${table.name.asId()}\" [label=<${rowsAsHtmlTable(table, rows)}>];"
         }.joinToString(separator = "\n\n")
+    }
+
+    private fun rowsAsVerticalHtmlTable(table: Table, rows: List<Row>): String {
+        val header="<TR><TD COLSPAN=\"${rows.size+1}\">${table.name.asSQL()}</TD></TR>\n"
+
+        val rowsAsHtml = table.columns.map { col ->
+            val rowAsHtml = rows.map { row ->
+                val value = row.values[col.name]
+                val valueAsSql = asSql(value)
+                "<TD>$valueAsSql</TD>"
+            }.joinToString()
+            "<TR><TD PORT=\"${col.name}\">${col.name}</TD>$rowAsHtml</TR>"
+        }.joinToString(separator = "\n")
+
+        return "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n" +
+                header +
+                rowsAsHtml+
+                "\n</TABLE>"
     }
 
     private fun rowsAsHtmlTable(table: Table, rows: List<Row>): String {
