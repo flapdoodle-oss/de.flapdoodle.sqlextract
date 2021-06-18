@@ -45,10 +45,11 @@ internal class SnapshotTest {
 
         val snapshot = Snapshot(
             tableGraph = graph,
-            tableMap = mapOf(
-                card to listOf(Snapshot.Row(mapOf())),
-                user to listOf(Snapshot.Row(mapOf()))
-            )
+            tableRows = listOf(
+                TableRow(card, RowKey(card, mapOf("ID" to 1)), emptyMap()),
+                TableRow(user, RowKey(user, mapOf("ID" to 2)), emptyMap()),
+            ),
+            rowConnections = setOf(RowKey(user, mapOf("ID" to 1)) to RowKey(card, mapOf("ID" to 1)))
         )
 
         println("--------------------")

@@ -1,17 +1,16 @@
 package de.flapdoodle.sqlextract.data
 
 import de.flapdoodle.sqlextract.cache.PersistedTables
-import de.flapdoodle.sqlextract.db.ColumnConnection
-import de.flapdoodle.sqlextract.db.Name
 import de.flapdoodle.sqlextract.db.Table
 import de.flapdoodle.sqlextract.graph.ForeignKeyAndReferenceGraph
 
 data class Snapshot(
     val tableGraph: ForeignKeyAndReferenceGraph,
-    val tableMap: Map<Table, List<Row>>
+    val tableRows: List<TableRow>,
+    val rowConnections: Set<Pair<RowKey, RowKey>>
 ) {
-    private val rowsByTableName = tableMap.mapKeys { it.key.name }
-    private val tableByName = tableMap.keys.associateBy { it.name }
+    private val tableByName = tableRows.associate { it.table.name to it.table }
+    private val rowsByTable = tableRows.groupBy { it.table }
 
     data class Row(val values: Map<String, Any?>)
 
@@ -19,7 +18,7 @@ data class Snapshot(
         val tablesInInsertOrder = tableGraph.tablesInInsertOrder()
         return tablesInInsertOrder.flatMap {
             val table = tableByName[it]
-            val rows = rowsByTableName[it]
+            val rows = rowsByTable[table]
             // no data
             if (table != null && rows != null) {
                 insertSQL(table, rows)
@@ -34,7 +33,7 @@ data class Snapshot(
     }
 
     fun schemaAsJson(): String {
-        return PersistedTables.asJson(tableMap.keys.toList(),"<no-hash>")
+        return PersistedTables.asJson(tableByName.values.toList(),"<no-hash>")
     }
 
     fun tableGraphAsDot(): String {
@@ -42,10 +41,10 @@ data class Snapshot(
     }
 
     fun tableRowsAsDot(): String {
-        return tableRowsVerticalAsDot(tableGraph, tableMap)
+        return tableRowsVerticalAsDot(tableGraph, rowsByTable)
     }
 
-    private fun insertSQL(table: Table, rows: List<Row>): List<String> {
+    private fun insertSQL(table: Table, rows: List<TableRow>): List<String> {
         val stringBuilder = StringBuilder()
         stringBuilder
             .append("INSERT INTO ${table.name.asSQL()}\n")
@@ -76,7 +75,7 @@ data class Snapshot(
 
     private fun tableRowsVerticalAsDot(
         tableGraph: ForeignKeyAndReferenceGraph,
-        tableMap: Map<Table, List<Row>>
+        tableMap: Map<Table, List<TableRow>>
     ): String {
         return "digraph structs {\n" +
                 "node [shape=plaintext]\n"+
@@ -89,7 +88,7 @@ data class Snapshot(
 
     private fun tableRowsAsDot(
         tableGraph: ForeignKeyAndReferenceGraph,
-        tableMap: Map<Table, List<Row>>
+        tableMap: Map<Table, List<TableRow>>
     ): String {
         return "digraph structs {\n" +
                 "node [shape=plaintext]\n"+
@@ -102,7 +101,7 @@ data class Snapshot(
 
     private fun connections(
         tableGraph: ForeignKeyAndReferenceGraph,
-        tableMap: Map<Table, List<Row>>
+        tableMap: Map<Table, List<TableRow>>
     ): String {
         val tableNames = tableMap.keys.map { it.name }
         return tableNames.flatMap {
@@ -115,19 +114,19 @@ data class Snapshot(
         }.joinToString("\n")
     }
 
-    private fun tablesVertical(tableMap: Map<Table, List<Row>>): String {
+    private fun tablesVertical(tableMap: Map<Table, List<TableRow>>): String {
         return tableMap.map { (table, rows) ->
             "\"${table.name.asId()}\" [label=<${rowsAsVerticalHtmlTable(table, rows)}>];"
         }.joinToString(separator = "\n\n")
     }
 
-    private fun tables(tableMap: Map<Table, List<Row>>): String {
+    private fun tables(tableMap: Map<Table, List<TableRow>>): String {
         return tableMap.map { (table, rows) ->
             "\"${table.name.asId()}\" [label=<${rowsAsHtmlTable(table, rows)}>];"
         }.joinToString(separator = "\n\n")
     }
 
-    private fun rowsAsVerticalHtmlTable(table: Table, rows: List<Row>): String {
+    private fun rowsAsVerticalHtmlTable(table: Table, rows: List<TableRow>): String {
         val header="<TR><TD COLSPAN=\"${rows.size+1}\">${table.name.asSQL()}</TD></TR>\n"
 
         val rowsAsHtml = table.columns.map { col ->
@@ -145,7 +144,7 @@ data class Snapshot(
                 "\n</TABLE>"
     }
 
-    private fun rowsAsHtmlTable(table: Table, rows: List<Row>): String {
+    private fun rowsAsHtmlTable(table: Table, rows: List<TableRow>): String {
         val columnNames = table.columns.map {
             "<TD PORT=\"${it.name}\">${it.name}</TD>"
         }

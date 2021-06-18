@@ -34,105 +34,93 @@ class DataSetCollector(
         val sqlQuery = selectQuery(dataSet.table, dataSet.where, dataSet.orderBy)
         collect(
             table,
-            sqlQuery,
-            emptyMap(),
-            CollectionMode.ForeignKeysAndBacktrack,
-            Direction.FollowingForeignKeys,
             backtrackOverride,
-            null
+            Query(sqlQuery),
+            Strategy(CollectionMode.ForeignKeysAndBacktrack, Direction.FollowingForeignKeys),
+            null,
         )
     }
 
     fun snapshot(): Snapshot {
-        return Snapshot(tableGraph, rowCollector.rowMap())
+        return Snapshot(tableGraph, rowCollector.rowMap(), rowCollector.connections())
     }
 
     private fun collect(
         table: Table,
-        query: String,
-        parameters: Map<Int, Any> = emptyMap(),
-        mode: CollectionMode,
-        direction: Direction,
         backtrackOverride: BacktrackOverride,
-        limit: Long?,
+        query: Query,
+        strategy: Strategy,
+        cause: RowKey?
     ) {
-//        if (!rowCollector.skipQuery(query, parameters)) {
+        println("---------------------------------------------")
+        println("collect ${query.sql} with ${query.parameters} (limit=$query.limit)")
 
-            println("---------------------------------------------")
-            println("collect $query with $parameters (limit=$limit)")
-
-            val newRows = connection.query {
-                val statement = prepareStatement(query)
-                parameters.forEach { index, value ->
-                    statement.setObject(index, value)
-                }
-                if (limit != null) {
-                    statement.fetchSize = limit.toInt()
-                }
-                statement.executeQuery().andCloseAfterUse(statement)
+        val newRows = connection.query {
+            val statement = prepareStatement(query.sql)
+            query.parameters.forEach { index, value ->
+                statement.setObject(index, value)
             }
-                .map {
-                    TableRow.of(table, table.columns.map { column ->
-                        column.name to this.column(column.name, Object::class)
-                    }.toMap())
-                }
-
-            if (newRows.isEmpty() && direction==Direction.FollowingForeignKeys) {
-                //TODO reenable this check throw IllegalArgumentException("expected any result, but got nothing.")
+            if (query.limit != null) {
+                statement.fetchSize = query.limit.toInt()
+            }
+            statement.executeQuery().andCloseAfterUse(statement)
+        }
+            .map {
+                TableRow.of(table, table.columns.map { column ->
+                    column.name to this.column(column.name, Object::class)
+                }.toMap())
             }
 
-            val missingRows = rowCollector.missingRows(newRows)
-            rowCollector.add(newRows)
+        if (newRows.isEmpty() && strategy.direction == Direction.FollowingForeignKeys) {
+            //TODO reenable this check throw IllegalArgumentException("expected any result, but got nothing.")
+        }
 
-            println("collect $query with $parameters (limit=$limit) -> ${newRows.size} (missing: ${missingRows.size})")
+        val missingRows = rowCollector.missingRows(newRows)
+        rowCollector.add(newRows, cause, strategy.direction)
 
-            if (missingRows.isNotEmpty()) {
-                val sourceTables = tableGraph.foreignKeysTo(table.name)
-                val sourceReferenceTables = tableGraph.referencesTo(table.name)
+        println("collect ${query.sql} with ${query.parameters} (limit=${query.limit}) -> ${newRows.size} (missing: ${missingRows.size})")
 
-                val validFKBacktrackTables = sourceTables.filter {
-                    direction==Direction.Backtrack
-                            || mode==CollectionMode.ForeignKeysAndBacktrack
-                            || backtrackOverride.find(it, table.name)!=null
-                }
+        if (missingRows.isNotEmpty()) {
+            val sourceTables = tableGraph.foreignKeysTo(table.name)
+            val sourceReferenceTables = tableGraph.referencesTo(table.name)
 
-                val validRefBacktrackTables = sourceReferenceTables.filter {
-                    backtrackOverride.find(it, table.name)!=null
-                }
+            val validFKBacktrackTables = sourceTables.filter {
+                strategy.direction == Direction.Backtrack
+                        || strategy.mode == CollectionMode.ForeignKeysAndBacktrack
+                        || backtrackOverride.find(it, table.name) != null
+            }
 
-                val validBacktrackTables=validFKBacktrackTables+validRefBacktrackTables.toSet()
+            val validRefBacktrackTables = sourceReferenceTables.filter {
+                backtrackOverride.find(it, table.name) != null
+            }
 
-                validBacktrackTables.forEach { from ->
-                    val fromTable = tableRepository.get(from)
-                    collect(
-                        fromTable,
-                        backtrackOverride.find(from, table.name),
-                        backtrackOverride,
-                        missingRows,
-                        mode,
-                        Direction.Backtrack
-                    ) { row -> constraintsOf(fromTable, row) }
-                }
+            val validBacktrackTables = validFKBacktrackTables + validRefBacktrackTables.toSet()
 
-                val tablesPointingTo = tableGraph.foreignKeysFrom(table.name)
-                tablesPointingTo.forEach { to ->
-                    val toTable = tableRepository.get(to)
-                    collect(
-                        toTable,
-                        null,
-                        backtrackOverride,
-                        missingRows,
-                        CollectionMode.OnlyForeignKeys,
-                        Direction.FollowingForeignKeys
-                    ) { row ->
-                        constraintsOf(row, toTable)
-                    }
+            validBacktrackTables.forEach { from ->
+                val fromTable = tableRepository.get(from)
+                collect(
+                    fromTable,
+                    backtrackOverride.find(from, table.name),
+                    backtrackOverride,
+                    missingRows,
+                    strategy.copy(direction = Direction.Backtrack)
+                ) { row -> constraintsOf(fromTable, row) }
+            }
+
+            val tablesPointingTo = tableGraph.foreignKeysFrom(table.name)
+            tablesPointingTo.forEach { to ->
+                val toTable = tableRepository.get(to)
+                collect(
+                    toTable,
+                    null,
+                    backtrackOverride,
+                    missingRows,
+                    Strategy(CollectionMode.OnlyForeignKeys, Direction.FollowingForeignKeys)
+                ) { row ->
+                    constraintsOf(row, toTable)
                 }
             }
-//        } else {
-//            println("---------------------------------------------")
-//            println("skip $query with $parameters (limit=$limit)")
-//        }
+        }
     }
 
     private fun collect(
@@ -140,8 +128,7 @@ class DataSetCollector(
         tableConstraint: Backtrack?,
         backtrackOverride: BacktrackOverride,
         newRows: List<TableRow>,
-        mode: CollectionMode,
-        direction: Direction,
+        strategy: Strategy,
         constraintsFactory: (TableRow) -> List<Pair<String, Any?>>,
     ) {
         newRows.forEach { row ->
@@ -155,7 +142,7 @@ class DataSetCollector(
                 .mapIndexed { index, pair -> index + 1 to pair.second!! }
                 .toMap()
 
-            collect(table, query, parameters, mode, direction, backtrackOverride, tableConstraint?.limit)
+            collect(table, backtrackOverride, Query(query, parameters, tableConstraint?.limit), strategy, row.key)
         }
     }
 
@@ -180,7 +167,7 @@ class DataSetCollector(
     private fun constraintsOf(from: Table, to: TableRow): List<Pair<String, Any?>> {
         val fk = from.foreignKeys.filter { it.destinationTable == to.table.name }
         val ref = from.references.filter { it.destinationTable == to.table.name }
-        val all = (fk+ref).toSet()
+        val all = (fk + ref).toSet()
         require(all.isNotEmpty()) { "expected connections to ${to.table} from ${from.name}" }
         return all.map {
             val value = to.values[it.destinationColumn]
@@ -195,7 +182,7 @@ class DataSetCollector(
     private fun constraintsOf(from: TableRow, to: Table): List<Pair<String, Any?>> {
         val fk = from.table.foreignKeys.filter { it.destinationTable == to.name }
         val ref = from.table.references.filter { it.destinationTable == to.name }
-        val all = (fk+ref).toSet()
+        val all = (fk + ref).toSet()
         require(all.isNotEmpty()) { "expected foreign keys to ${from.table} from ${to.name}" }
         return all.map {
             val value = from.values[it.sourceColumn]
@@ -209,105 +196,24 @@ class DataSetCollector(
 
     private class BacktrackOverride(val backtrack: List<Backtrack>) {
         fun find(source: Name, destination: Name) = backtrack
-            .filter { it.source==source && it.destination==destination }
+            .filter { it.source == source && it.destination == destination }
             .singleOrNull()
     }
 
-    private enum class Direction {
-        FollowingForeignKeys,
-        Backtrack
-    }
+    private class Query(
+        val sql: String,
+        val parameters: Map<Int, Any> = emptyMap(),
+        val limit: Long? = null,
+    )
+
+    private data class Strategy(
+        val mode: CollectionMode,
+        val direction: Direction
+    )
 
     private enum class CollectionMode {
         ForeignKeysAndBacktrack,
         OnlyForeignKeys
-    }
-
-    private class RowCollector {
-        private var tableRowsMap = emptyMap<Name, TableRows>()
-        private var executedQueries = emptySet<QueryKey>()
-
-        fun rowMap(): Map<Table, List<Snapshot.Row>> {
-            return tableRowsMap.entries.flatMap {
-                it.value.rows()
-            }.groupBy { it.table }
-                .mapValues {
-                    it.value.map { row -> Snapshot.Row(row.values) }
-                }
-        }
-
-        fun add(rows: List<TableRow>) {
-            rows.forEach { row ->
-                entryFor(row.table.name)
-                    .add(row)
-            }
-        }
-
-        private fun entryFor(table: Name): TableRows {
-            val ret = tableRowsMap[table]
-            return if (ret == null) {
-                val rows = TableRows(table)
-                tableRowsMap = tableRowsMap + (table to rows)
-                rows
-            } else {
-                ret
-            }
-        }
-
-        fun missingRows(rows: List<TableRow>): List<TableRow> {
-            return rows.filter { row ->
-                !entryFor(row.table.name).contains(row)
-            }
-        }
-
-        fun skipQuery(query: String, parameters: Map<Int, Any>): Boolean {
-            val key = QueryKey(query, parameters)
-            return if (!executedQueries.contains(key)) {
-                executedQueries = executedQueries + key
-                false
-            } else
-                true
-        }
-
-    }
-
-    private data class QueryKey(val query: String, val parameters: Map<Int, Any>)
-
-    private class TableRows(val table: Name) {
-        private var rowMap = emptyMap<RowKey, TableRow>()
-
-        fun add(row: TableRow) {
-            require(row.table.name == table) { "wrong table: $row != $table" }
-            if (!rowMap.containsKey(row.key)) {
-                rowMap = rowMap + (row.key to row)
-            }
-        }
-
-        fun contains(row: TableRow): Boolean {
-            return rowMap.containsKey(row.key)
-        }
-
-        fun rows() = rowMap.values
-    }
-
-    private data class TableRow(val table: Table, val key: RowKey, val values: Map<String, Any?>) {
-
-        companion object {
-            fun of(table: Table, values: Map<String, Any?>): TableRow {
-                return TableRow(table, rowKey(table, values), values)
-            }
-
-            private fun rowKey(table: Table, values: Map<String, Any?>): RowKey {
-                require(table.primaryKeys.isNotEmpty()) {"table ${table.name} does not have any primary keys"}
-                return RowKey(table, table.primaryKeys.map {
-                    it.columnName to knownType(values[it.columnName])
-                }.toMap())
-            }
-
-            private fun <T> knownType(value: T?): T? {
-                return value
-            }
-        }
     }
 
 }
