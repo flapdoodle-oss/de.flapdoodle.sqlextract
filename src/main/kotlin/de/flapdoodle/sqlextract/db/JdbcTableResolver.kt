@@ -12,13 +12,12 @@ class JdbcTableResolver(
     private val metaData: DatabaseMetaData = connection.metaData
 
     override fun byName(name: Name): Table {
-        val table = JdbcTable.table(metaData, name.name, name.schema)
-        val columns = Columns.columns(metaData, table.name)
-        val primaryKeys = PrimaryKeys.primaryKeys(metaData, table.name)
-        val foreignKeys = ForeignKeys.foreignKeys(metaData, table.name)
+        val columns = Columns.columns(metaData, name)
+        val primaryKeys = PrimaryKeys.primaryKeys(metaData, name)
+        val foreignKeys = ForeignKeys.foreignKeys(metaData, name)
 
         return Table(
-            name = table.name,
+            name = name,
             columns = columns,
             primaryKeys = primaryKeys,
             foreignKeys = foreignKeys
