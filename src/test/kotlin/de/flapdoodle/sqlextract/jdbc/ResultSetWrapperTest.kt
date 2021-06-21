@@ -9,9 +9,9 @@ import org.slf4j.LoggerFactory
 import java.sql.Connection
 
 @ExtendWith(SqlInitExtension::class)
-internal class ResultSetAdapterTest {
+internal class ResultSetWrapperTest {
 
-    private val logger: Logger = LoggerFactory.getLogger(ResultSetAdapterTest::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(ResultSetWrapperTest::class.java)
 
     @Test
     fun readSample(connection: Connection) {

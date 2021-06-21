@@ -1,7 +1,6 @@
 package de.flapdoodle.sqlextract.db
 
 import de.flapdoodle.sqlextract.SqlInitExtension
-import de.flapdoodle.sqlextract.jdbc.tables
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

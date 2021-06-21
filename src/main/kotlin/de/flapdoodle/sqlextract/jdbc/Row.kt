@@ -4,14 +4,14 @@ import java.sql.JDBCType
 import java.sql.ResultSet
 import kotlin.reflect.KClass
 
-class ResultSetRow(private val wrapped: ResultSet) {
-    val meta = wrapped.metaData
-    val columnTypeMap = (1..meta.columnCount).map {
+class Row(private val wrapped: ResultSet) {
+    private val meta = wrapped.metaData
+    private val columnTypeMap = (1..meta.columnCount).associate {
         val name = meta.getColumnName(it)
         val type = meta.getColumnType(it)
 
         name to JDBCType.valueOf(type)
-    }.toMap()
+    }
 
 
     fun column(columnName: String): Any? {
@@ -33,17 +33,13 @@ class ResultSetRow(private val wrapped: ResultSet) {
 
     fun <T: Any> expectColumn(columnName: String, type: KClass<T>): T {
         val value = column(columnName, type)
-
         require(value!=null) {"column $columnName is null"}
-
         return value
     }
 
     fun <T: Any> expectColumn(columnName: Set<String>, type: KClass<T>): T {
         val value = column(columnName, type)
-
         require(value!=null) {"column $columnName is null"}
-
         return value
     }
 }

@@ -1,10 +1,10 @@
 package de.flapdoodle.sqlextract.db
 
-import de.flapdoodle.sqlextract.jdbc.tables
+import de.flapdoodle.sqlextract.jdbc.JdbcTable
 import java.sql.Connection
 
 class JdbcTableNamesFactory : TableNamesFactory {
     override fun tableNames(connection: Connection): List<Name> {
-        return connection.metaData.tables().map { it.name }
+        return JdbcTable.tables(connection.metaData).map { it.name }
     }
 }
