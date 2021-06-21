@@ -53,7 +53,7 @@ class DataSetCollector(
         cause: RowKey?
     ) {
         println("---------------------------------------------")
-        println("collect ${query.sql} with ${query.parameters} (limit=$query.limit)")
+        println("collect ${query.sql} with ${query.parameters} (limit=${query.limit})")
 
         val newRows = connection.query {
             val statement = prepareStatement(query.sql)
